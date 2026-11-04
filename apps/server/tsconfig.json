@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "tsBuildInfoFile": "dist/.tsbuildinfo"
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    { "path": "../../packages/shared-types" },
+    { "path": "../../packages/capabilities" },
+    { "path": "../../packages/core" },
+    { "path": "../../packages/rules" },
+    { "path": "../../packages/storage" },
+    { "path": "../../packages/queue" },
+    { "path": "../../packages/onebot" },
+    { "path": "../../packages/adapters-discord" },
+    { "path": "../../packages/adapters-qq" }
+  ]
+}

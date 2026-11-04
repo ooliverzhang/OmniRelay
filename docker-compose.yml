@@ -1,0 +1,52 @@
+# ---------------------------------------------------------------------------
+# OmniRelay 本地/单机 Docker Compose 部署
+#
+# 使用前：
+#   cp config.example.yaml config.yaml
+#   cp .env.example .env          # 填写 ONEBOT_BRIDGE_TOKEN / WEB_ADMIN_PASSWORD_HASH 等
+#   docker compose config         # 校验
+#   docker compose up -d --build
+#
+# 安全说明：所有端口默认只绑定到 127.0.0.1，避免把 OneBot 与控制台暴露到公网。
+# ---------------------------------------------------------------------------
+services:
+  omni-relay:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: omni-relay:0.1.0
+    container_name: omni-relay
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      OMNI_RELAY_CONFIG: /app/config.yaml
+      OMNI_RELAY_LOG_LEVEL: info
+    ports:
+      - "127.0.0.1:8098:8098" # OneBot 11 reverse WebSocket
+      - "127.0.0.1:8080:8080" # healthz / readyz / status
+      - "127.0.0.1:3000:3000" # web console
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - omni-relay-data:/app/data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:8080/healthz').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  omni-relay-data:
+    name: omni-relay-data

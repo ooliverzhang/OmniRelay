@@ -1,0 +1,39 @@
+{
+  "name": "omni-relay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "OmniRelay — independent Discord / QQ official bot to OneBot 11 multi-platform bridge and control center",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "typecheck": "tsc -b tsconfig.json --pretty --force && tsc -p apps/web/tsconfig.json --noEmit",
+    "build": "npm run build:server && npm run build:web",
+    "build:server": "tsc -b tsconfig.json",
+    "build:web": "npm run build --workspace @omni-relay/web",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dev": "npm run dev --workspace @omni-relay/server",
+    "start": "node apps/server/dist/index.js",
+    "web:dev": "npm run dev --workspace @omni-relay/web",
+    "web:build": "npm run build --workspace @omni-relay/web",
+    "web:test": "npm run test --workspace @omni-relay/web",
+    "hash-password": "node scripts/hash-password.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "clean": "node scripts/clean.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "prettier": "^3.4.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

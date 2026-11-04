@@ -1,0 +1,103 @@
+# ---------------------------------------------------------------------------
+# OmniRelay 配置示例
+#
+# 复制为 config.yaml 后按需修改。所有字段均可省略，省略时使用内置默认值。
+# 安全默认值：所有平台默认关闭、QQ 主动群发默认关闭、群聊默认需要白名单、
+# OneBot WebSocket 默认只监听内网、Token 只从环境变量读取。
+# ---------------------------------------------------------------------------
+
+server:
+  host: 0.0.0.0
+  # OneBot 11 反向 WebSocket 端口（上层 OneBot 客户端连接到这里）
+  onebot_port: 8098
+  # 健康检查端口：/healthz /readyz /status
+  health_port: 8080
+  websocket_path: /onebot/v11/ws
+  data_dir: ./data
+
+web:
+  enabled: true
+  host: 0.0.0.0
+  port: 3000
+  admin_auth: true
+  session_secret_env: WEB_SESSION_SECRET
+  admin_password_hash_env: WEB_ADMIN_PASSWORD_HASH
+  cors_origins: []
+  # 前端构建产物目录（npm run web:build 生成），由后端静态托管
+  static_dir: ./apps/web/dist
+  session_ttl_seconds: 43200
+
+reply_policy:
+  # always | mention_only | private_only | whitelist | disabled
+  default_mode: mention_only
+  allow_private_without_mention: true
+  allow_group_without_mention: false
+  allow_channel_without_mention: false
+  whitelist_user_ids: []
+  whitelist_group_ids: []
+
+rules:
+  enabled: true
+  default_action: ignore
+  stop_on_first_match: true
+
+onebot:
+  access_token_env: ONEBOT_BRIDGE_TOKEN
+  # 单条 Action 的超时（毫秒）
+  action_timeout_ms: 10000
+  max_pending_actions: 256
+  heartbeat_interval_seconds: 30
+  # 为 true 时缺少 ONEBOT_BRIDGE_TOKEN 将拒绝启动
+  require_access_token: false
+
+discord:
+  enabled: false
+  token_env: DISCORD_BOT_TOKEN
+  guild_allowlist: []
+  channel_allowlist: []
+  message_content_intent: true
+  api_base_url: https://discord.com/api/v10
+  gateway_url: wss://gateway.discord.gg/?v=10&encoding=json
+  rest_timeout_ms: 15000
+  intents:
+    guilds: true
+    guild_messages: true
+    message_content: true
+    direct_messages: true
+
+qq:
+  enabled: false
+  app_id_env: QQ_APP_ID
+  app_secret_env: QQ_APP_SECRET
+  group_allowlist: []
+  # 主动消息受官方额度与用户开关限制，默认只允许私聊主动消息
+  allow_proactive_private: true
+  allow_proactive_group: false
+  # 全量群消息需要官方权限，默认关闭，只接收群 @ 机器人事件
+  receive_all_group_messages: false
+  token_url: https://bots.qq.com/app/getAppAccessToken
+  api_base_url: https://api.sgroup.qq.com
+  rest_timeout_ms: 15000
+  passive_reply_window_seconds: 300
+
+storage:
+  sqlite_path: ./data/bridge.sqlite
+  dedupe_ttl_seconds: 86400
+  message_retention_days: 30
+
+retry:
+  max_attempts: 5
+  initial_delay_ms: 1000
+  max_delay_ms: 60000
+  jitter_ratio: 0.2
+
+logging:
+  level: info
+  pretty: false
+
+# 可选：覆盖平台能力声明。未声明的能力使用保守默认值（不确定即视为不支持）。
+# capabilities:
+#   discord:
+#     privateProactiveSend: false
+#   qq-official:
+#     groupReceive: false

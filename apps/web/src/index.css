@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-slate-950 text-slate-200 antialiased;
+    font-family:
+      Inter, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', system-ui,
+      sans-serif;
+  }
+
+  ::selection {
+    @apply bg-indigo-500/30;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-indigo-500/60 ring-offset-0;
+  }
+}
+
+@layer components {
+  .surface {
+    @apply rounded-xl border border-slate-800 bg-slate-900/60;
+  }
+
+  .field-label {
+    @apply mb-1.5 block text-xs font-medium text-slate-400;
+  }
+
+  .field-input {
+    @apply w-full rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100
+      placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none;
+  }
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  @apply rounded-full bg-slate-700;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
