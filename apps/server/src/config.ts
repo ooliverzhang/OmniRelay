@@ -12,6 +12,8 @@ export class ConfigError extends Error {
   }
 }
 
+const logLevelSchema = z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']);
+
 const serverSchema = z
   .object({
     host: z.string().min(1),
@@ -68,6 +70,15 @@ const onebotSchema = z
   })
   .partial();
 
+const discordIntentsSchema = z
+  .object({
+    guilds: z.boolean(),
+    guild_messages: z.boolean(),
+    message_content: z.boolean(),
+    direct_messages: z.boolean(),
+  })
+  .partial();
+
 const discordSchema = z
   .object({
     enabled: z.boolean(),
@@ -78,14 +89,7 @@ const discordSchema = z
     api_base_url: z.string().url(),
     gateway_url: z.string().url(),
     rest_timeout_ms: z.number().int().positive(),
-    intents: z
-      .object({
-        guilds: z.boolean(),
-        guild_messages: z.boolean(),
-        message_content: z.boolean(),
-        direct_messages: z.boolean(),
-      })
-      .partial(),
+    intents: discordIntentsSchema,
   })
   .partial();
 
@@ -122,8 +126,6 @@ const retrySchema = z
   })
   .partial();
 
-const logLevelSchema = z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']);
-
 const loggingSchema = z
   .object({
     level: logLevelSchema,
@@ -144,6 +146,13 @@ const capabilityFlagSchema = z
   })
   .partial();
 
+const capabilitiesSchema = z
+  .object({
+    discord: capabilityFlagSchema,
+    'qq-official': capabilityFlagSchema,
+  })
+  .partial();
+
 const fileSchema = z
   .object({
     server: serverSchema,
@@ -156,14 +165,10 @@ const fileSchema = z
     storage: storageSchema,
     retry: retrySchema,
     logging: loggingSchema,
-    capabilities: z
-      .object({
-        discord: capabilityFlagSchema,
-        'qq-official': capabilityFlagSchema,
-      })
-      .partial(),
+    capabilities: capabilitiesSchema,
   })
-  .partial();
+  .partial()
+  .strict();
 
 export type ConfigFile = z.infer<typeof fileSchema>;
 
@@ -185,20 +190,12 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function definedOnly<T extends Record<string, unknown>>(value: T): Partial<T> {
-  const out: Record<string, unknown> = {};
-  for (const [key, entry] of Object.entries(value)) {
-    if (entry !== undefined) {
-      out[key] = entry;
-    }
-  }
-  return out as Partial<T>;
-}
-
 /**
- * Loads `config.yaml` (when present), validates it, and merges it over the
- * built-in defaults. Environment variables only override ports/paths and log
- * settings; secrets are always read from the environment at use time.
+ * Loads `config.yaml` (when present), validates it with zod, and merges it over
+ * the built-in defaults using an explicit snake_case → camelCase mapping.
+ *
+ * Environment variables only override ports/paths and log settings; secrets are
+ * always read from the environment at the point of use, never stored.
  */
 export function loadConfig(options: LoadConfigOptions = {}): LoadConfigResult {
   const env = options.env ?? process.env;
@@ -206,9 +203,7 @@ export function loadConfig(options: LoadConfigOptions = {}): LoadConfigResult {
   const warnings: string[] = [];
 
   const explicitPath = options.configPath ?? env['OMNI_RELAY_CONFIG'] ?? undefined;
-  const configPath = explicitPath
-    ? resolve(cwd, explicitPath)
-    : findDefaultConfig(cwd);
+  const configPath = explicitPath ? resolve(cwd, explicitPath) : findDefaultConfig(cwd);
 
   let parsed: ConfigFile = {};
   if (configPath) {
@@ -233,7 +228,7 @@ export function loadConfig(options: LoadConfigOptions = {}): LoadConfigResult {
     const result = fileSchema.safeParse(yamlValue);
     if (!result.success) {
       throw new ConfigError(
-        `invalid config in ${configPath}:\n${formatZodError(result.error)}\n${formatZodPaths(result.error)}`,
+        `invalid config in ${configPath}:\n${formatZodError(result.error)}${formatUnknownKeys(result.error)}`,
       );
     }
     parsed = result.data;
@@ -242,7 +237,7 @@ export function loadConfig(options: LoadConfigOptions = {}): LoadConfigResult {
   const config = mergeConfig(parsed, warnings);
   applyEnvironmentOverrides(config, env);
   resolvePaths(config, cwd);
-  validateResolvedConfig(config);
+  validateResolvedConfig(config, env);
   return { config, configPath: configPath ?? null, warnings };
 }
 
@@ -258,8 +253,6 @@ function findDefaultConfig(cwd: string): string | null {
 
 function mergeConfig(file: ConfigFile, warnings: string[]): AppConfig {
   const defaults = DEFAULT_APP_CONFIG;
-  const toAbsolute = (value: string | undefined, fallback: string): string => value ?? fallback;
-
   const server = file.server ?? {};
   const web = file.web ?? {};
   const onebot = file.onebot ?? {};
@@ -270,121 +263,120 @@ function mergeConfig(file: ConfigFile, warnings: string[]): AppConfig {
   const logging = file.logging ?? {};
   const policy = file.reply_policy ?? {};
   const rules = file.rules ?? {};
+  const capabilities = file.capabilities ?? {};
 
-  if (server.websocket_path && onebot.websocket_path && server.websocket_path !== onebot.websocket_path) {
+  if (
+    server.websocket_path !== undefined &&
+    onebot.websocket_path !== undefined &&
+    server.websocket_path !== onebot.websocket_path
+  ) {
     warnings.push(
       `server.websocket_path (${server.websocket_path}) differs from onebot.websocket_path (${onebot.websocket_path}); using server.websocket_path`,
     );
   }
 
-  const config: AppConfig = {
+  return {
     server: {
-      ...defaults.server,
-      ...definedOnly(server),
-      ...(server.onebot_port === undefined && onebot.listen_port !== undefined
-        ? { onebotPort: onebot.listen_port }
-        : {}),
-      ...(server.websocket_path === undefined && onebot.websocket_path !== undefined
-        ? { websocketPath: onebot.websocket_path }
-        : {}),
-      ...(server.host === undefined && onebot.listen_host !== undefined
-        ? { host: onebot.listen_host }
-        : {}),
-      ...(server.health_port === undefined && web.port !== undefined ? {} : {}),
+      host: server.host ?? onebot.listen_host ?? defaults.server.host,
+      onebotPort: server.onebot_port ?? onebot.listen_port ?? defaults.server.onebotPort,
+      healthPort: server.health_port ?? defaults.server.healthPort,
+      websocketPath:
+        server.websocket_path ?? onebot.websocket_path ?? defaults.server.websocketPath,
+      dataDir: server.data_dir ?? defaults.server.dataDir,
     },
     web: {
-      ...defaults.web,
-      ...definedOnly(web),
+      enabled: web.enabled ?? defaults.web.enabled,
+      host: web.host ?? defaults.web.host,
+      port: web.port ?? defaults.web.port,
+      adminAuth: web.admin_auth ?? defaults.web.adminAuth,
+      sessionSecretEnv: web.session_secret_env ?? defaults.web.sessionSecretEnv,
+      adminPasswordHashEnv:
+        web.admin_password_hash_env ?? defaults.web.adminPasswordHashEnv,
+      corsOrigins: web.cors_origins ?? [...defaults.web.corsOrigins],
+      staticDir: web.static_dir ?? defaults.web.staticDir,
+      sessionTtlSeconds: web.session_ttl_seconds ?? defaults.web.sessionTtlSeconds,
     },
     replyPolicy: {
-      ...defaults.replyPolicy,
-      ...(policy.default_mode === undefined ? {} : { defaultMode: policy.default_mode }),
-      ...(policy.allow_private_without_mention === undefined
-        ? {}
-        : { allowPrivateWithoutMention: policy.allow_private_without_mention }),
-      ...(policy.allow_group_without_mention === undefined
-        ? {}
-        : { allowGroupWithoutMention: policy.allow_group_without_mention }),
-      ...(policy.allow_channel_without_mention === undefined
-        ? {}
-        : { allowChannelWithoutMention: policy.allow_channel_without_mention }),
-      ...(policy.whitelist_user_ids === undefined
-        ? {}
-        : { whitelistUserIds: policy.whitelist_user_ids }),
-      ...(policy.whitelist_group_ids === undefined
-        ? {}
-        : { whitelistGroupIds: policy.whitelist_group_ids }),
+      defaultMode: policy.default_mode ?? defaults.replyPolicy.defaultMode,
+      allowPrivateWithoutMention:
+        policy.allow_private_without_mention ?? defaults.replyPolicy.allowPrivateWithoutMention,
+      allowGroupWithoutMention:
+        policy.allow_group_without_mention ?? defaults.replyPolicy.allowGroupWithoutMention,
+      allowChannelWithoutMention:
+        policy.allow_channel_without_mention ?? defaults.replyPolicy.allowChannelWithoutMention,
+      whitelistUserIds: policy.whitelist_user_ids ?? [...defaults.replyPolicy.whitelistUserIds],
+      whitelistGroupIds: policy.whitelist_group_ids ?? [...defaults.replyPolicy.whitelistGroupIds],
     },
     rules: {
-      ...defaults.rules,
-      ...(rules.enabled === undefined ? {} : { enabled: rules.enabled }),
-      ...(rules.default_action === undefined ? {} : { defaultAction: rules.default_action }),
-      ...(rules.stop_on_first_match === undefined
-        ? {}
-        : { stopOnFirstMatch: rules.stop_on_first_match }),
+      enabled: rules.enabled ?? defaults.rules.enabled,
+      defaultAction: rules.default_action ?? defaults.rules.defaultAction,
+      stopOnFirstMatch: rules.stop_on_first_match ?? defaults.rules.stopOnFirstMatch,
     },
     onebot: {
-      ...defaults.onebot,
-      ...definedOnly(onebot),
+      accessTokenEnv: onebot.access_token_env ?? defaults.onebot.accessTokenEnv,
+      actionTimeoutMs: onebot.action_timeout_ms ?? defaults.onebot.actionTimeoutMs,
+      maxPendingActions: onebot.max_pending_actions ?? defaults.onebot.maxPendingActions,
+      heartbeatIntervalSeconds:
+        onebot.heartbeat_interval_seconds ?? defaults.onebot.heartbeatIntervalSeconds,
+      requireAccessToken: onebot.require_access_token ?? defaults.onebot.requireAccessToken,
     },
     discord: {
-      ...defaults.discord,
-      ...definedOnly(discord),
+      enabled: discord.enabled ?? defaults.discord.enabled,
+      tokenEnv: discord.token_env ?? defaults.discord.tokenEnv,
+      guildAllowlist: discord.guild_allowlist ?? [...defaults.discord.guildAllowlist],
+      channelAllowlist: discord.channel_allowlist ?? [...defaults.discord.channelAllowlist],
       intents: {
-        ...defaults.discord.intents,
-        ...(discord.intents?.guilds === undefined ? {} : { guilds: discord.intents.guilds }),
-        ...(discord.intents?.guild_messages === undefined
-          ? {}
-          : { guildMessages: discord.intents.guild_messages }),
-        ...(discord.intents?.message_content === undefined
-          ? {}
-          : { messageContent: discord.intents.message_content }),
-        ...(discord.intents?.direct_messages === undefined
-          ? {}
-          : { directMessages: discord.intents.direct_messages }),
+        guilds: discord.intents?.guilds ?? defaults.discord.intents.guilds,
+        guildMessages: discord.intents?.guild_messages ?? defaults.discord.intents.guildMessages,
+        messageContent:
+          discord.intents?.message_content ??
+          discord.message_content_intent ??
+          defaults.discord.intents.messageContent,
+        directMessages:
+          discord.intents?.direct_messages ?? defaults.discord.intents.directMessages,
       },
-      ...(discord.message_content_intent === undefined
-        ? {}
-        : { intents: {
-            ...defaults.discord.intents,
-            ...(discord.intents?.guilds === undefined ? {} : { guilds: discord.intents.guilds }),
-            ...(discord.intents?.guild_messages === undefined
-              ? {}
-              : { guildMessages: discord.intents.guild_messages }),
-            messageContent: discord.message_content_intent,
-            ...(discord.intents?.direct_messages === undefined
-              ? {}
-              : { directMessages: discord.intents.direct_messages }),
-          } }),
+      apiBaseUrl: discord.api_base_url ?? defaults.discord.apiBaseUrl,
+      gatewayUrl: discord.gateway_url ?? defaults.discord.gatewayUrl,
+      restTimeoutMs: discord.rest_timeout_ms ?? defaults.discord.restTimeoutMs,
     },
     qq: {
-      ...defaults.qq,
-      ...definedOnly(qq),
+      enabled: qq.enabled ?? defaults.qq.enabled,
+      appIdEnv: qq.app_id_env ?? defaults.qq.appIdEnv,
+      appSecretEnv: qq.app_secret_env ?? defaults.qq.appSecretEnv,
+      groupAllowlist: qq.group_allowlist ?? [...defaults.qq.groupAllowlist],
+      allowProactivePrivate: qq.allow_proactive_private ?? defaults.qq.allowProactivePrivate,
+      allowProactiveGroup: qq.allow_proactive_group ?? defaults.qq.allowProactiveGroup,
+      receiveAllGroupMessages:
+        qq.receive_all_group_messages ?? defaults.qq.receiveAllGroupMessages,
+      tokenUrl: qq.token_url ?? defaults.qq.tokenUrl,
+      apiBaseUrl: qq.api_base_url ?? defaults.qq.apiBaseUrl,
+      restTimeoutMs: qq.rest_timeout_ms ?? defaults.qq.restTimeoutMs,
+      passiveReplyWindowSeconds:
+        qq.passive_reply_window_seconds ?? defaults.qq.passiveReplyWindowSeconds,
     },
     storage: {
-      ...defaults.storage,
-      ...definedOnly(storage),
+      sqlitePath: storage.sqlite_path ?? defaults.storage.sqlitePath,
+      dedupeTtlSeconds: storage.dedupe_ttl_seconds ?? defaults.storage.dedupeTtlSeconds,
+      messageRetentionDays:
+        storage.message_retention_days ?? defaults.storage.messageRetentionDays,
     },
     retry: {
-      ...defaults.retry,
-      ...definedOnly(retry),
+      maxAttempts: retry.max_attempts ?? defaults.retry.maxAttempts,
+      initialDelayMs: retry.initial_delay_ms ?? defaults.retry.initialDelayMs,
+      maxDelayMs: retry.max_delay_ms ?? defaults.retry.maxDelayMs,
+      jitterRatio: retry.jitter_ratio ?? defaults.retry.jitterRatio,
     },
     logging: {
-      ...defaults.logging,
-      ...definedOnly(logging),
+      level: logging.level ?? defaults.logging.level,
+      pretty: logging.pretty ?? defaults.logging.pretty,
     },
     capabilities: {
-      ...(file.capabilities?.discord === undefined
+      ...(capabilities.discord === undefined ? {} : { discord: capabilities.discord }),
+      ...(capabilities['qq-official'] === undefined
         ? {}
-        : { discord: file.capabilities.discord }),
-      ...(file.capabilities?.['qq-official'] === undefined
-        ? {}
-        : { 'qq-official': file.capabilities['qq-official'] }),
+        : { 'qq-official': capabilities['qq-official'] }),
     },
   };
-
-  void toAbsolute;
-  return config;
 }
 
 function applyEnvironmentOverrides(config: AppConfig, env: NodeJS.ProcessEnv): void {
@@ -428,7 +420,7 @@ function applyEnvironmentOverrides(config: AppConfig, env: NodeJS.ProcessEnv): v
   if (logLevel !== undefined) {
     const parsedLevel = logLevelSchema.safeParse(logLevel);
     if (!parsedLevel.success) {
-      throw new ConfigError(`OMNI_RELAY_LOG_LEVEL must be one of fatal|error|warn|info|debug|trace`);
+      throw new ConfigError('OMNI_RELAY_LOG_LEVEL must be one of fatal|error|warn|info|debug|trace');
     }
     config.logging.level = parsedLevel.data;
   }
@@ -457,7 +449,7 @@ function resolvePaths(config: AppConfig, cwd: string): void {
   }
 }
 
-function validateResolvedConfig(config: AppConfig): void {
+function validateResolvedConfig(config: AppConfig, env: NodeJS.ProcessEnv): void {
   if (config.server.onebotPort === config.web.port) {
     throw new ConfigError('server.onebot_port must differ from web.port');
   }
@@ -475,11 +467,16 @@ function validateResolvedConfig(config: AppConfig): void {
   }
   if (config.web.adminAuth) {
     const hashEnv = config.web.adminPasswordHashEnv;
-    if (!process.env[hashEnv]) {
+    if (!env[hashEnv]) {
       throw new ConfigError(
         `web.admin_auth is enabled but ${hashEnv} is not set. Generate a hash with "npm run hash-password" and export it, or set web.admin_auth to false for local-only development.`,
       );
     }
+  }
+  if (config.onebot.requireAccessToken && !env[config.onebot.accessTokenEnv]) {
+    throw new ConfigError(
+      `onebot.require_access_token is enabled but ${config.onebot.accessTokenEnv} is not set`,
+    );
   }
 }
 
@@ -490,13 +487,9 @@ function formatZodError(error: z.ZodError): string {
     .join('\n');
 }
 
-function formatZodPaths(error: z.ZodError): string {
-  const unknownKeys = error.issues.filter((issue) => issue.code === 'unrecognized_keys');
-  if (unknownKeys.length === 0) {
-    return '';
-  }
-  const names = unknownKeys.flatMap((issue) =>
-    (issue as unknown as { keys?: string[] }).keys ?? [],
-  );
-  return names.length > 0 ? `unknown config keys: ${names.join(', ')}` : '';
+function formatUnknownKeys(error: z.ZodError): string {
+  const keys = error.issues
+    .filter((issue) => issue.code === 'unrecognized_keys')
+    .flatMap((issue) => (issue as unknown as { keys?: string[] }).keys ?? []);
+  return keys.length > 0 ? `\nunknown config keys: ${keys.join(', ')}` : '';
 }

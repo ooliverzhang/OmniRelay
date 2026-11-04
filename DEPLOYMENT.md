@@ -10,7 +10,7 @@
 | 项目 | 状态 |
 | --- | --- |
 | `npm run typecheck` | ✅ 通过 |
-| `npm test` | ✅ 33 文件 / 350 用例 |
+| `npm test` | ✅ 34 文件 / 356 用例 |
 | `npm run build` | ✅ 通过（后端 + 前端） |
 | `npm run web:test` | ✅ 4 文件 / 36 用例 |
 | 进程级冒烟（真实启动构建产物） | ✅ `/healthz` `/readyz` `/status` / SPA / `/api/session` |

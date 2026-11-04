@@ -104,7 +104,7 @@ npm run web:dev    # Vite dev server，5173，/api 代理到 127.0.0.1:3000
 | 脚本 | 说明 |
 | --- | --- |
 | `npm run typecheck` | `tsc -b`（全部后端包）+ 前端 `tsc --noEmit` |
-| `npm test` | Vitest 运行后端/集成/接口测试（33 文件 / 350 用例） |
+| `npm test` | Vitest 运行后端/集成/接口测试（34 文件 / 356 用例） |
 | `npm run build` | 构建后端（`tsc -b`）与前端（Vite → `apps/web/dist`） |
 | `npm run dev` | 后端热重载开发模式 |
 | `npm run web:dev` | 前端 Vite 开发服务器 |
@@ -190,7 +190,7 @@ Token:   Authorization: Bearer $ONEBOT_BRIDGE_TOKEN
 
 ```bash
 npm run typecheck   # 后端 10 个 project + 前端，0 错误
-npm test            # 33 files / 350 tests 通过
+npm test            # 34 files / 356 tests 通过
 npm run build       # 后端 tsc -b + 前端 vite build 成功
 npm run web:test    # 4 files / 36 tests 通过
 docker compose config   # 本机未安装 Docker，需在具备 Docker 的环境执行
@@ -199,7 +199,7 @@ docker compose config   # 本机未安装 Docker，需在具备 Docker 的环境
 最近一次本地结果（开发机 Windows / Node 24.18）：
 
 - `npm run typecheck`：通过（0 错误）
-- `npm test`：**33 文件 / 350 用例全部通过**
+- `npm test`：**34 文件 / 356 用例全部通过**
 - `npm run web:test`：**4 文件 / 36 用例全部通过**
 - `npm run build`：成功，前端产物 `index.html 0.86 kB` + `css 25.77 kB` + `js 817.89 kB`（gzip 267.86 kB）
 - 进程级冒烟：`node apps/server/dist/index.js` 后 `/healthz`、`/readyz`、`/status`、
