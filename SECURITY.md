@@ -51,7 +51,55 @@ QQ access token 会在内存中缓存至过期前 60s，`invalidate()` 会强制
 
 ---
 
-## 3. 网络暴露面
+## 3. 凭据存储与掩码策略
+
+OmniRelay 支持两种凭据来源，二者最终都通过**环境变量**进入进程，代码里没有任何
+「从数据库或 API 读取明文」的路径。
+
+### 3.1 来源
+
+| 来源 | 说明 |
+| --- | --- |
+| 宿主机环境变量 / `.env` 手工维护 | 默认方式，凭据由运维直接管理 |
+| Web 控制台写入 | 需显式开启 `credentials.allow_console_write: true` |
+
+### 3.2 落盘规则（控制台写入路径）
+
+- 明文**只**落在 `credentials.env_file` 指定的文件（默认 `<项目根>/.env`），
+  进程内仅存在于 `process.env`，**绝不写入 SQLite**。
+- 写入使用 `临时文件 → chmod 600 → fs.rename` 原子替换；任何一步失败都回滚，
+  原文件内容不受损。
+- 写入前自动备份为 `.env.bak-<时间戳>`，最多保留 5 份；`.gitignore` 已排除
+  `.env`、`.env.bak-*`、`.env.tmp-*`，备份不会进入版本库。
+- 文件保留原有注释、空行与行序，只增改目标行。
+- `credentials.env_file` 必须是项目根目录内的路径，`../` 越界在启动时即被拒绝。
+
+### 3.3 掩码与回传
+
+- `GET /api/platforms`、`GET /api/platforms/:platform` 只返回
+  `{ env, state, writable, masked }`，`masked` 形如 `abcd…wxyz`（长度 ≥ 8 时保留首尾各 4 位，
+  3–7 位显示 `••••`，1–2 位显示 `••`），**从不返回明文**。
+- 不存在任何「读取明文凭据」的接口；`PUT`/`DELETE` 成功后的响应体同样只含掩码。
+- 写入的键必须在白名单内：`discord → DISCORD_BOT_TOKEN`、
+  `qq-official → QQ_APP_ID / QQ_APP_SECRET`、`onebot → ONEBOT_BRIDGE_TOKEN`。
+  这可以阻止通过控制台注入 `NODE_OPTIONS` 等可改变进程行为的变量。
+- 值会做校验：去首尾空白、非空、长度 ≤ 512、**拒绝换行与 NUL**（防止借换行注入额外键）。
+
+### 3.4 审计
+
+- 写入与删除分别记录 `platform.credential.write` / `platform.credential.delete`，
+  字段只有 `platform` 与 `keys`（键名数组），**不含值**。
+- 手工核对：以假 Token 执行一次写入后，`grep` 服务日志找不到该字符串。
+
+### 3.5 前端
+
+- 凭据输入框 `type="password"`、`autoComplete="new-password"`；提交成功立即清空组件 state。
+- 明文不进入 localStorage / sessionStorage / URL / Query cache；渲染层只读 `masked`。
+- 提交前有二次确认弹窗，文案只拼接环境变量名。
+
+---
+
+## 4. 网络暴露面
 
 | 端口 | 默认绑定 | 建议 |
 | --- | --- | --- |
@@ -64,7 +112,7 @@ QQ access token 会在内存中缓存至过期前 60s，`invalidate()` 会强制
 
 ---
 
-## 4. 输入与内容安全
+## 5. 输入与内容安全
 
 - 所有配置经 `zod` 严格校验（未知键会报错）；API 入参同样用 `zod` 校验。
 - 规则中的 `textRegex` 由 `new RegExp` 编译，非法正则记为不匹配（不会抛出/拖垮进程）。
@@ -75,7 +123,7 @@ QQ access token 会在内存中缓存至过期前 60s，`invalidate()` 会强制
 
 ---
 
-## 5. 防循环与防滥用
+## 6. 防循环与防滥用
 
 - 桥自身发送的消息不会重新进入入站流水线（入站仅由两个 Adapter 产生）。
 - 规则引擎默认忽略其他机器人（`trigger.ignoreBots` 缺省 true）。
@@ -85,7 +133,7 @@ QQ access token 会在内存中缓存至过期前 60s，`invalidate()` 会强制
 
 ---
 
-## 6. 数据与隐私
+## 7. 数据与隐私
 
 - SQLite 文件位于 `data/`（已 `.gitignore`），含消息正文与用户原生 ID，属于敏感数据：
   请限制文件权限，并纳入备份加密策略。
@@ -96,7 +144,7 @@ QQ access token 会在内存中缓存至过期前 60s，`invalidate()` 会强制
 
 ---
 
-## 7. 漏洞与依赖
+## 8. 漏洞与依赖
 
 - 依赖面刻意保持最小：`ws`、`fastify`（+ cookie/static）、`pino`、`yaml`、`zod`、
   `react` 生态；SQLite 使用 Node 内置 `node:sqlite`（无原生编译依赖）。

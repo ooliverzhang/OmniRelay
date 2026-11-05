@@ -4,8 +4,9 @@ import { Link, useParams } from 'react-router-dom';
 import { usePlatform, useUpdatePlatform } from '../api/hooks';
 import type { Platform, PlatformUpdateRequest, PlatformView } from '../api/types';
 import { Button } from '../components/Button';
-import { CapabilityMatrix, CredentialList } from '../components/CapabilityMatrix';
+import { CapabilityMatrix } from '../components/CapabilityMatrix';
 import { Card, PageHeader } from '../components/Card';
+import { CredentialEditor } from '../components/CredentialEditor';
 import { ErrorState, LoadingBlock } from '../components/EmptyState';
 import { Checkbox, FormField, FormSection, TextArea, Toggle } from '../components/Field';
 import { Badge, StatusBadge } from '../components/StatusBadge';
@@ -289,13 +290,19 @@ export function PlatformDetailPage() {
             </dl>
           </Card>
 
-          <Card title="凭据状态" description="仅显示是否配置，不展示任何密钥值">
-            <CredentialList credentials={view.credentials} />
+          <Card title="凭据状态" description="仅展示掩码值，控制台不回显任何明文密钥">
+            <CredentialEditor
+              key={`${view.platform}-${view.credentials.map((credential) => `${credential.env}:${credential.state}`).join(',')}`}
+              platform={view.platform}
+              credentials={view.credentials}
+            />
           </Card>
 
           <Card title="提示">
             <p className="text-xs leading-relaxed text-slate-400">
-              凭据通过服务器环境变量提供。修改环境变量并重启服务后，此处的状态才会更新。空列表表示不限制白名单。
+              凭据可直接在控制台写入服务器的
+              .env，保存后服务会重新加载该平台连接。若该键被标记为只读，请由运维在服务器 .env
+              中配置后重启服务。空列表表示不限制白名单。
             </p>
           </Card>
         </div>

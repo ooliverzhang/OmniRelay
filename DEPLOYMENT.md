@@ -64,6 +64,74 @@ docker compose logs -f omni-relay
 
 ---
 
+## 3b. 在控制台配置平台凭据
+
+方案 A：控制台把凭据写入 `.env` 文件，并**热重载该平台的适配器**（不重启进程、
+不中断 OneBot 连接）。默认关闭，需要显式开启。
+
+### 开启步骤
+
+1) `config.yaml`
+
+```yaml
+credentials:
+  env_file: ./.env           # 必须在项目根目录内，否则启动即报错
+  allow_console_write: true  # 默认 false
+```
+
+也可用环境变量覆盖：`OMNI_RELAY_ENV_FILE`、`OMNI_RELAY_ALLOW_CONSOLE_WRITE=1`。
+
+2) 重启一次服务让配置生效（之后改凭据无需再重启）。
+
+3) 打开控制台 → 「平台」→ 选择平台 → 凭据行点「填写」/「更换」→ 输入 → 二次确认。
+
+### 行为说明
+
+| 行为 | 细节 |
+| --- | --- |
+| 写入目标 | `credentials.env_file`（默认 `<项目根>/.env`） |
+| 权限 | 强制 `600` |
+| 原子性 | 临时文件 → chmod → `fs.rename` 替换；失败回滚，原文件不受损 |
+| 备份 | `.env.bak-<时间戳>`，最多保留 5 份（`.gitignore` 已排除） |
+| 保留原内容 | 注释/空行/行序不动，只改目标键；值为空即删除该键 |
+| 生效方式 | 只重建被修改平台的适配器，OneBot 服务与出站队列不受影响 |
+| 白名单 | `discord→DISCORD_BOT_TOKEN`、`qq-official→QQ_APP_ID/QQ_APP_SECRET`、`onebot→ONEBOT_BRIDGE_TOKEN` |
+| 审计 | 日志记录 `platform.credential.write` 与键名，不含值 |
+
+### 接口
+
+```http
+PUT /api/platforms/:platform/credentials
+{ "values": { "DISCORD_BOT_TOKEN": "<token>" } }   -> 200 PlatformView（凭据为掩码）
+
+DELETE /api/platforms/:platform/credentials/:env   -> 200 PlatformView
+```
+
+错误码：`403 credential_write_disabled`（未开启）、`400 invalid_credential_key`（非白名单）、
+`400 invalid_credential_value`（空/超长/含换行）、`400 unsupported_platform`、`401`（未登录）。
+
+### 关闭控制台写入
+
+`credentials.allow_console_write: false` 时：所有写接口返回 403，
+`PlatformCredentialView.writable` 为 `false`，控制台按钮禁用并提示
+「请由运维在服务器 .env 中配置」。
+
+### 为什么选择热重载而不是重启进程
+
+重启进程会中断 OneBot 反向 WebSocket 的所有宿主连接，并让未完成的重试/队列状态
+进入不必要的抖动。凭据只影响单个平台的适配器，因此：
+
+1. 先 `close()` 旧网关（**必须**，否则旧 websocket 会泄漏，因为
+   `initDiscord`/`initQq` 在缺少凭据时会提前返回而不替换旧实例）；
+2. 重新构造该平台适配器；
+3. 若平台已启用则重新 `connect()`；
+4. 清空该平台的入站回复窗口缓存。
+
+OneBot、outbox worker、storage 均不重建。对应测试见
+`tests/server/runtime-credentials.test.ts`（断言旧 socket 被 `close`、QQ 重载不影响 Discord）。
+
+---
+
 ## 4. 反向代理（可选，推荐生产）
 
 ```nginx

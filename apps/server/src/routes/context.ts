@@ -4,6 +4,7 @@ import type { AppConfig } from '@omni-relay/shared-types';
 
 import type { AuthService } from '../auth.js';
 import { SESSION_COOKIE_NAME } from '../auth.js';
+import type { EnvFileStore } from '../env-file.js';
 import type { AppLogger } from '../logger.js';
 import type { BridgeRuntime } from '../runtime.js';
 
@@ -12,6 +13,8 @@ export interface RouteContext {
   auth: AuthService;
   logger: AppLogger;
   config: AppConfig;
+  /** Reader/writer for the console-managed `.env` credential file. */
+  credentials: EnvFileStore;
 }
 
 export type RouteGuard = (request: FastifyRequest, reply: FastifyReply) => Promise<void>;

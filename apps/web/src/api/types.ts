@@ -18,7 +18,7 @@ export type ConnectionState =
   | 'disabled'
   | 'unconfigured';
 
-export type CredentialState = 'configured' | 'missing';
+export type CredentialState = 'configured' | 'missing' | 'invalid';
 
 export type DeliveryStatus =
   'ignored' | 'blocked' | 'queued' | 'sending' | 'sent' | 'failed' | 'dead';
@@ -90,6 +90,15 @@ export interface PlatformCredentialView {
   /** Environment variable that must hold the value. */
   env: string;
   state: CredentialState;
+  /** Whether the console is allowed to write this credential. */
+  writable: boolean;
+  /** Masked current value, `null` when nothing is configured. */
+  masked: string | null;
+}
+
+/** Payload of `PUT /api/platforms/:platform/credentials`. */
+export interface PlatformCredentialValuesRequest {
+  values: Record<string, string>;
 }
 
 export interface PlatformSettingsView {

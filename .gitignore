@@ -15,3 +15,7 @@ coverage/
 .DS_Store
 Thumbs.db
 apps/web/dist/
+# Console-managed credential file and its atomic-write/backup artefacts
+.env.bak-*
+.env.tmp-*
+credentials.local.env

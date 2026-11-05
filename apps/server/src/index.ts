@@ -1,6 +1,7 @@
 import { loadConfig } from './config.js';
 import { AuthService } from './auth.js';
 import { createApp } from './app.js';
+import { createEnvFileStore } from './env-file.js';
 import { createHealthServer } from './health.js';
 import { createLogger } from './logger.js';
 import { registerActions } from './actions.js';
@@ -44,6 +45,7 @@ async function main(): Promise<void> {
     });
   }
 
+  const credentials = createEnvFileStore({ filePath: config.credentials.envFile });
   const runtime = new BridgeRuntime({ config, storage, logger });
   registerActions(runtime.registry, runtime);
 
@@ -117,7 +119,7 @@ async function main(): Promise<void> {
   await health.start();
 
   if (config.web.enabled) {
-    app = await createApp({ config, runtime, auth, logger });
+    app = await createApp({ config, runtime, auth, logger, credentials });
     await app.listen({ host: config.web.host, port: config.web.port });
     logger.info('web console listening', {
       event: 'web.listen',

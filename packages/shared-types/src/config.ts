@@ -15,6 +15,8 @@ export interface AppConfig {
   storage: StorageConfig;
   retry: RetryPolicyConfig;
   logging: LoggingConfig;
+  /** Where runtime credentials live and whether the console may write them. */
+  credentials: CredentialsConfig;
   /** Optional capability overrides, merged over the conservative defaults. */
   capabilities: Partial<Record<Platform, Partial<PlatformCapabilities>>>;
 }
@@ -93,6 +95,13 @@ export interface StorageConfig {
 export interface LoggingConfig {
   level: 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace';
   pretty: boolean;
+}
+
+export interface CredentialsConfig {
+  /** `.env` file path, relative to the project root or absolute. */
+  envFile: string;
+  /** Allow the console to write credentials, disabled by default. */
+  allowConsoleWrite: boolean;
 }
 
 export const DEFAULT_APP_CONFIG: AppConfig = {
@@ -176,6 +185,10 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
   logging: {
     level: 'info',
     pretty: false,
+  },
+  credentials: {
+    envFile: './.env',
+    allowConsoleWrite: false,
   },
   capabilities: {},
 };

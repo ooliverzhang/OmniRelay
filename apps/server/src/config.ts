@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
-import { isAbsolute, resolve } from 'node:path';
+import { isAbsolute, relative, resolve } from 'node:path';
 
 import { DEFAULT_APP_CONFIG, type AppConfig } from '@omni-relay/shared-types';
 import { parse as parseYaml } from 'yaml';
@@ -146,6 +146,13 @@ const capabilityFlagSchema = z
   })
   .partial();
 
+const credentialsSchema = z
+  .object({
+    env_file: z.string().min(1),
+    allow_console_write: z.boolean(),
+  })
+  .partial();
+
 const capabilitiesSchema = z
   .object({
     discord: capabilityFlagSchema,
@@ -165,6 +172,7 @@ const fileSchema = z
     storage: storageSchema,
     retry: retrySchema,
     logging: loggingSchema,
+    credentials: credentialsSchema,
     capabilities: capabilitiesSchema,
   })
   .partial()
@@ -261,6 +269,7 @@ function mergeConfig(file: ConfigFile, warnings: string[]): AppConfig {
   const storage = file.storage ?? {};
   const retry = file.retry ?? {};
   const logging = file.logging ?? {};
+  const credentials = file.credentials ?? {};
   const policy = file.reply_policy ?? {};
   const rules = file.rules ?? {};
   const capabilities = file.capabilities ?? {};
@@ -366,6 +375,10 @@ function mergeConfig(file: ConfigFile, warnings: string[]): AppConfig {
       level: logging.level ?? defaults.logging.level,
       pretty: logging.pretty ?? defaults.logging.pretty,
     },
+    credentials: {
+      envFile: credentials.env_file ?? defaults.credentials.envFile,
+      allowConsoleWrite: credentials.allow_console_write ?? defaults.credentials.allowConsoleWrite,
+    },
     capabilities: {
       ...(capabilities.discord === undefined ? {} : { discord: capabilities.discord }),
       ...(capabilities['qq-official'] === undefined
@@ -426,6 +439,16 @@ function applyEnvironmentOverrides(config: AppConfig, env: NodeJS.ProcessEnv): v
   if (pretty !== undefined) {
     config.logging.pretty = pretty === '1' || pretty.toLowerCase() === 'true';
   }
+  const envFile = stringFromEnv('OMNI_RELAY_ENV_FILE');
+  if (envFile !== undefined) {
+    // Still subject to the project-root boundary check in resolvePaths.
+    config.credentials.envFile = envFile;
+  }
+  const allowConsoleWrite = stringFromEnv('OMNI_RELAY_ALLOW_CONSOLE_WRITE');
+  if (allowConsoleWrite !== undefined) {
+    config.credentials.allowConsoleWrite =
+      allowConsoleWrite === '1' || allowConsoleWrite.toLowerCase() === 'true';
+  }
 }
 
 function resolvePaths(config: AppConfig, cwd: string): void {
@@ -441,10 +464,38 @@ function resolvePaths(config: AppConfig, cwd: string): void {
   config.web.staticDir = isAbsolute(config.web.staticDir)
     ? config.web.staticDir
     : resolve(cwd, config.web.staticDir);
+
+  // The credentials file is writable from the console, so it must stay inside
+  // the project root; a `../` or absolute escape would let a request rewrite
+  // anything the process can reach.
+  const envFile = resolve(cwd, config.credentials.envFile);
+  if (!isWithinProjectRoot(cwd, envFile)) {
+    throw new ConfigError(
+      `credentials.env_file must resolve inside the project root (${cwd}); got: ${envFile}`,
+    );
+  }
+  config.credentials.envFile = envFile;
+
   mkdirSync(config.server.dataDir, { recursive: true });
   if (config.storage.sqlitePath !== ':memory:') {
     mkdirSync(resolve(config.storage.sqlitePath, '..'), { recursive: true });
   }
+}
+
+/**
+ * Returns whether `target` resolves to `root` itself or a path below it.
+ *
+ * Both arguments are resolved against the current working directory when they
+ * are relative, so callers can pass raw config values.
+ */
+export function isWithinProjectRoot(root: string, target: string): boolean {
+  const rootAbsolute = resolve(root);
+  const targetAbsolute = resolve(target);
+  const relativePath = relative(rootAbsolute, targetAbsolute);
+  if (relativePath === '') {
+    return true;
+  }
+  return !relativePath.startsWith('..') && !isAbsolute(relativePath);
 }
 
 function validateResolvedConfig(config: AppConfig, env: NodeJS.ProcessEnv): void {

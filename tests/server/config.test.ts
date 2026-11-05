@@ -4,7 +4,9 @@ import { join, resolve } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { ConfigError, loadConfig } from '../../apps/server/src/config.js';
+import { DEFAULT_APP_CONFIG } from '@omni-relay/shared-types';
+
+import { ConfigError, isWithinProjectRoot, loadConfig } from '../../apps/server/src/config.js';
 
 const HASH_ENV = { WEB_ADMIN_PASSWORD_HASH: 'scrypt$16384$8$1$c2FsdA$aGFzaA' };
 
@@ -198,5 +200,114 @@ describe('loadConfig', () => {
         env: { ...HASH_ENV, OMNI_RELAY_ONEBOT_PORT: 'not-a-number' },
       }),
     ).toThrow(ConfigError);
+  });
+});
+
+describe('credentials config', () => {
+  let dir: string;
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'omni-relay-credentials-'));
+  });
+
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  function writeConfig(content: string): string {
+    const path = join(dir, 'config.yaml');
+    writeFileSync(path, content, 'utf8');
+    return path;
+  }
+
+  it('defaults to ./.env with console writes disabled', () => {
+    expect(DEFAULT_APP_CONFIG.credentials).toEqual({
+      envFile: './.env',
+      allowConsoleWrite: false,
+    });
+
+    const { config } = loadConfig({ cwd: dir, env: HASH_ENV });
+
+    expect(config.credentials).toEqual({
+      envFile: resolve(dir, '.env'),
+      allowConsoleWrite: false,
+    });
+  });
+
+  it('reads the credentials section from YAML', () => {
+    const path = writeConfig(
+      ['credentials:', '  env_file: ./.env.console', '  allow_console_write: true', ''].join('\n'),
+    );
+
+    const { config } = loadConfig({ configPath: path, cwd: dir, env: HASH_ENV });
+
+    expect(config.credentials.envFile).toBe(resolve(dir, '.env.console'));
+    expect(config.credentials.allowConsoleWrite).toBe(true);
+  });
+
+  it('rejects a relative path that escapes the project root', () => {
+    const path = writeConfig('credentials:\n  env_file: ../outside.env\n');
+
+    expect(() => loadConfig({ configPath: path, cwd: dir, env: HASH_ENV })).toThrow(ConfigError);
+    expect(() => loadConfig({ configPath: path, cwd: dir, env: HASH_ENV })).toThrow(/project root/);
+  });
+
+  it('rejects an absolute path outside the project root', () => {
+    const outside = resolve(dir, '..', 'outside.env');
+    const path = writeConfig(`credentials:\n  env_file: ${JSON.stringify(outside)}\n`);
+
+    expect(() => loadConfig({ configPath: path, cwd: dir, env: HASH_ENV })).toThrow(ConfigError);
+  });
+
+  it('accepts an absolute path inside the project root', () => {
+    const inside = join(dir, 'secrets', '.env');
+    const path = writeConfig(`credentials:\n  env_file: ${JSON.stringify(inside)}\n`);
+
+    const { config } = loadConfig({ configPath: path, cwd: dir, env: HASH_ENV });
+
+    expect(config.credentials.envFile).toBe(inside);
+  });
+
+  it('applies the environment overrides and still enforces the root boundary', () => {
+    const { config } = loadConfig({
+      cwd: dir,
+      env: {
+        ...HASH_ENV,
+        OMNI_RELAY_ENV_FILE: './.env.from-env',
+        OMNI_RELAY_ALLOW_CONSOLE_WRITE: '1',
+      },
+    });
+    expect(config.credentials.envFile).toBe(resolve(dir, '.env.from-env'));
+    expect(config.credentials.allowConsoleWrite).toBe(true);
+
+    const disabled = loadConfig({
+      cwd: dir,
+      env: { ...HASH_ENV, OMNI_RELAY_ALLOW_CONSOLE_WRITE: 'false' },
+    });
+    expect(disabled.config.credentials.allowConsoleWrite).toBe(false);
+
+    expect(() =>
+      loadConfig({ cwd: dir, env: { ...HASH_ENV, OMNI_RELAY_ENV_FILE: '../escaped.env' } }),
+    ).toThrow(/project root/);
+  });
+});
+
+describe('isWithinProjectRoot', () => {
+  const root = resolve(tmpdir(), 'omni-relay-root');
+
+  it('accepts paths below the root', () => {
+    expect(isWithinProjectRoot(root, join(root, 'a', 'b'))).toBe(true);
+    expect(isWithinProjectRoot(root, join(root, '.env'))).toBe(true);
+    expect(isWithinProjectRoot(root, root)).toBe(true);
+  });
+
+  it('rejects paths outside the root', () => {
+    expect(isWithinProjectRoot(root, resolve(root, '..', 'x'))).toBe(false);
+    expect(isWithinProjectRoot(root, resolve(root, '..', 'x', 'a'))).toBe(false);
+    expect(isWithinProjectRoot(root, resolve(tmpdir()))).toBe(false);
+  });
+
+  it('rejects sibling directories that merely share a prefix', () => {
+    expect(isWithinProjectRoot(root, `${root}-other`)).toBe(false);
   });
 });

@@ -42,6 +42,7 @@ OneBot 宿主”和“把 OneBot 指令安全地投递回平台”。
 | 出站队列：指数退避 + 抖动、最大次数、死信、手动重试（重新过安全门） | ✅ 已实现 |
 | Web 控制台：Dashboard、平台、规则、会话、身份、队列、日志、设置 | ✅ 已实现 |
 | 控制台登录（scrypt + HMAC 签名 Cookie）、操作审计日志 | ✅ 已实现 |
+| 控制台内配置平台凭据（写入 `.env`、权限 600、原子替换、热重载） | ✅ 已实现（`allow_console_write` 默认关闭） |
 | 健康检查 `/healthz` `/readyz` `/status`、结构化日志、优雅关闭 | ✅ 已实现 |
 | Dockerfile / docker-compose | ✅ 已提供（本机无 Docker，未实际构建） |
 
@@ -72,6 +73,10 @@ cp .env.example .env
 npm run hash-password -- "你的管理密码"
 #   -> WEB_ADMIN_PASSWORD_HASH='scrypt$...'
 #   -> WEB_SESSION_SECRET='...'
+#
+# 平台凭据（Discord Bot Token / QQ AppID+AppSecret）有两种配置方式：
+#   A. 直接写进 .env 或宿主机环境变量（默认方式）
+#   B. 在 Web 控制台「平台详情」页填写 —— 需先开启 credentials.allow_console_write: true
 
 # 4) 类型检查 + 测试 + 构建
 npm run typecheck
@@ -176,7 +181,10 @@ Token:   Authorization: Bearer $ONEBOT_BRIDGE_TOKEN
 ## 7. 管理与安全默认值
 
 - 平台默认**全部关闭**；QQ 主动群发默认关闭；群聊默认需要白名单或 `@`。
-- 真实 Token / AppSecret **只从环境变量读取**，控制台只显示“已配置/未配置”。
+- 真实 Token / AppSecret **只从环境变量读取**，控制台只显示掩码（如 `abcd…wxyz`），永不回传明文。
+- 开启 `credentials.allow_console_write: true` 后，控制台可把凭据写入 `.env`（权限 600、
+  原子替换、写入前备份、热重载对应平台）。写入只允许白名单键，且 `credentials.env_file`
+  必须位于项目根目录内。
 - 日志与会话记录对 `Authorization`、`token`、`secret`、Cookie 等键做脱敏；
   测试用例断言了脱敏行为。
 - 控制台密码使用 scrypt 哈希，会话使用 HMAC 签名 + 过期时间，Cookie 为 HttpOnly。

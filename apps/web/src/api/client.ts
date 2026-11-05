@@ -1,4 +1,9 @@
-import type { ApiErrorBody } from './types';
+import type {
+  ApiErrorBody,
+  Platform,
+  PlatformCredentialValuesRequest,
+  PlatformView,
+} from './types';
 
 /**
  * Thin fetch wrapper for the OmniRelay admin API.
@@ -104,5 +109,38 @@ export const apiClient = {
   post: <T>(path: string, body?: unknown): Promise<T> => request<T>(path, { method: 'POST', body }),
   patch: <T>(path: string, body?: unknown): Promise<T> =>
     request<T>(path, { method: 'PATCH', body }),
+  put: <T>(path: string, body?: unknown): Promise<T> => request<T>(path, { method: 'PUT', body }),
   delete: <T>(path: string): Promise<T> => request<T>(path, { method: 'DELETE' }),
 };
+
+/**
+ * Writes one or more credentials for a platform.
+ *
+ * The values travel in the request body only. They are never persisted in the
+ * browser (no `localStorage`, no URL) and never logged; the response is the
+ * regular {@link PlatformView}, whose credential entries only carry `masked`.
+ *
+ * Failures surface as {@link ApiError} with the backend code preserved:
+ * `credential_write_disabled` (403), `invalid_credential_key` (400) and
+ * `invalid_credential_value` (400).
+ */
+export async function setPlatformCredential(
+  platform: Platform,
+  values: Record<string, string>,
+): Promise<PlatformView> {
+  const body: PlatformCredentialValuesRequest = { values };
+  return request<PlatformView>(`/platforms/${platform}/credentials`, {
+    method: 'PUT',
+    body,
+  });
+}
+
+/** Removes a single credential by environment variable name. */
+export async function deletePlatformCredential(
+  platform: Platform,
+  env: string,
+): Promise<PlatformView> {
+  return request<PlatformView>(`/platforms/${platform}/credentials/${encodeURIComponent(env)}`, {
+    method: 'DELETE',
+  });
+}

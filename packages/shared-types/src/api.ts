@@ -38,7 +38,11 @@ export interface LoginRequest {
   password: string;
 }
 
-export type CredentialState = 'configured' | 'missing';
+/**
+ * Credential presence. `invalid` means the key exists but the platform rejected
+ * it during the last connection attempt (never inferred from the value shape).
+ */
+export type CredentialState = 'configured' | 'missing' | 'invalid';
 
 export interface PlatformCredentialView {
   /** Human readable credential name, e.g. "Bot Token". */
@@ -46,6 +50,15 @@ export interface PlatformCredentialView {
   /** Environment variable that must hold the value. */
   env: string;
   state: CredentialState;
+  /** Whether the console is allowed to write this credential. */
+  writable: boolean;
+  /** Masked value for display (`abcd…wxyz`), `null` when not configured. */
+  masked: string | null;
+}
+
+/** Body of `PUT /api/platforms/:platform/credentials`. */
+export interface PlatformCredentialWriteRequest {
+  values: Record<string, string>;
 }
 
 export type ConnectionState =

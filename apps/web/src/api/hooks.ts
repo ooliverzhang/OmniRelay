@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { apiClient } from './client';
+import { apiClient, deletePlatformCredential, setPlatformCredential } from './client';
 import type {
   ConversationRow,
   DashboardSummary,
@@ -11,6 +11,7 @@ import type {
   MessageRow,
   OkResponse,
   PagedResult,
+  Platform,
   PlatformActionResponse,
   PlatformUpdateRequest,
   PlatformView,
@@ -159,6 +160,49 @@ export function usePlatformAction(action: 'test' | 'reconnect') {
       void queryClient.invalidateQueries({ queryKey: queryKeys.platforms });
       void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
     },
+  });
+}
+
+/**
+ * Refreshes every cache entry touched by a credential write.
+ *
+ * Only masked data is ever stored in the query cache: the mutation arguments
+ * (plaintext values) live in the mutation object and are dropped by the caller
+ * as soon as the request settles.
+ */
+function useInvalidatePlatformCredentials() {
+  const queryClient = useQueryClient();
+  return (view: PlatformView) => {
+    queryClient.setQueryData(queryKeys.platform(view.platform), view);
+    void queryClient.invalidateQueries({ queryKey: queryKeys.platform(view.platform) });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.platforms });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
+  };
+}
+
+export interface SetPlatformCredentialVariables {
+  platform: Platform;
+  values: Record<string, string>;
+}
+
+export function useSetPlatformCredential() {
+  const invalidate = useInvalidatePlatformCredentials();
+  return useMutation<PlatformView, Error, SetPlatformCredentialVariables>({
+    mutationFn: ({ platform, values }) => setPlatformCredential(platform, values),
+    onSuccess: invalidate,
+  });
+}
+
+export interface DeletePlatformCredentialVariables {
+  platform: Platform;
+  env: string;
+}
+
+export function useDeletePlatformCredential() {
+  const invalidate = useInvalidatePlatformCredentials();
+  return useMutation<PlatformView, Error, DeletePlatformCredentialVariables>({
+    mutationFn: ({ platform, env }) => deletePlatformCredential(platform, env),
+    onSuccess: invalidate,
   });
 }
 

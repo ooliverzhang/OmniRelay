@@ -8,6 +8,7 @@ import {
   type OneBotEvent,
   type Platform,
   type PlatformCapabilities,
+  type PlatformCredentialView,
   type PlatformSettingsView,
   type PlatformView,
   type ReplyPolicyConfig,
@@ -58,6 +59,8 @@ import {
   type QqSocketFactory,
 } from '@omni-relay/adapters-qq';
 import type { Storage } from '@omni-relay/storage';
+
+import { maskEnvValue } from './env-file.js';
 
 import type { AppLogger } from './logger.js';
 import { APP_VERSION, DEFAULT_SELF_ID, ONEBOT_NICKNAME } from './version.js';
@@ -230,6 +233,73 @@ export class BridgeRuntime {
     await this.qq?.gateway.close();
     await this.onebot.close();
     this.logger.info('omni-relay runtime stopped', { event: 'runtime.stop' });
+  }
+
+  // -------------------------------------------------------------------------
+  // credential hot reload
+  // -------------------------------------------------------------------------
+
+  /**
+   * Applies a credential to the live process environment.
+   *
+   * Called after the value has been persisted to `.env` so the freshly rebuilt
+   * adapter (which reads `this.env`) picks it up without a process restart.
+   */
+  applyCredentialValue(key: string, value: string): void {
+    this.env[key] = value;
+  }
+
+  /** Removes a credential from the live process environment. */
+  clearCredentialValue(key: string): void {
+    delete this.env[key];
+  }
+
+  /**
+   * Rebuilds a single platform's adapter after its credentials changed.
+   *
+   * The old gateway is always closed first: `initDiscord`/`initQq` return early
+   * when credentials are missing, so replacing the bundle without closing it
+   * would leak the previous websocket connection.
+   *
+   * OneBot, the outbox worker and storage are intentionally untouched — only
+   * the platform being reconfigured is disturbed.
+   */
+  async reloadPlatformCredentials(platform: Platform): Promise<void> {
+    const previous = platform === 'discord' ? this.discord : this.qq;
+    if (previous) {
+      try {
+        await previous.gateway.close();
+      } catch (error) {
+        this.logger.warn('credential reload: closing previous gateway failed', {
+          event: 'platform.credential.reload',
+          platform,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    if (platform === 'discord') {
+      this.discord = null;
+      this.initDiscord();
+    } else {
+      this.qq = null;
+      this.initQq();
+    }
+
+    this.lastInbound.clear();
+
+    if (this.started && this.isPlatformEnabled(platform)) {
+      const bundle = this.getBundle(platform);
+      if (bundle) {
+        bundle.gateway.connect();
+      }
+    }
+
+    this.logger.info('platform credentials reloaded', {
+      event: 'platform.credential.reload',
+      platform,
+      configured: this.getBundle(platform) !== null,
+    });
   }
 
   private resolveAccessToken(): string | null {
@@ -494,31 +564,39 @@ export class BridgeRuntime {
     return `缺少环境变量 ${this.config.qq.appIdEnv} / ${this.config.qq.appSecretEnv}（QQ AppID / AppSecret）`;
   }
 
-  private getCredentialViews(platform: Platform) {
+  /**
+   * Builds the credential rows shown in the console.
+   *
+   * Only presence and a masked preview ever leave this method; the real value
+   * stays inside the process environment.
+   */
+  private getCredentialViews(platform: Platform): PlatformCredentialView[] {
+    const writable = this.config.credentials.allowConsoleWrite;
     if (platform === 'discord') {
-      return [
-        {
-          name: 'Bot Token',
-          env: this.config.discord.tokenEnv,
-          state: (this.env[this.config.discord.tokenEnv] ? 'configured' : 'missing') as
-            'configured' | 'missing',
-        },
-      ];
+      return [this.buildCredentialView('Bot Token', this.config.discord.tokenEnv, writable)];
     }
     return [
-      {
-        name: 'AppID',
-        env: this.config.qq.appIdEnv,
-        state: (this.env[this.config.qq.appIdEnv] ? 'configured' : 'missing') as
-          'configured' | 'missing',
-      },
-      {
-        name: 'AppSecret',
-        env: this.config.qq.appSecretEnv,
-        state: (this.env[this.config.qq.appSecretEnv] ? 'configured' : 'missing') as
-          'configured' | 'missing',
-      },
+      this.buildCredentialView('AppID', this.config.qq.appIdEnv, writable),
+      this.buildCredentialView('AppSecret', this.config.qq.appSecretEnv, writable),
     ];
+  }
+
+  private buildCredentialView(
+    name: string,
+    env: string,
+    writable: boolean,
+  ): PlatformCredentialView {
+    const value = this.env[env];
+    if (value === undefined || value.length === 0) {
+      return { name, env, state: 'missing', writable, masked: null };
+    }
+    return {
+      name,
+      env,
+      state: 'configured',
+      writable,
+      masked: maskEnvValue(value),
+    };
   }
 
   // -------------------------------------------------------------------------

@@ -8,10 +8,12 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import type { AppConfig } from '@omni-relay/shared-types';
 
 import type { AuthService } from './auth.js';
+import type { EnvFileStore } from './env-file.js';
 import type { AppLogger } from './logger.js';
 import type { BridgeRuntime } from './runtime.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerConversationRoutes } from './routes/conversations.js';
+import { registerCredentialRoutes } from './routes/credentials.js';
 import { createGuard, type RouteContext } from './routes/context.js';
 import { registerDashboardRoutes } from './routes/dashboard.js';
 import { registerLogRoutes } from './routes/logs.js';
@@ -26,6 +28,8 @@ export interface CreateAppOptions {
   runtime: BridgeRuntime;
   auth: AuthService;
   logger: AppLogger;
+  /** Reader/writer for the console-managed `.env` credential file. */
+  credentials: EnvFileStore;
 }
 
 /**
@@ -33,8 +37,8 @@ export interface CreateAppOptions {
  * separate Vite dev server, and the statically hosted React console.
  */
 export async function createApp(options: CreateAppOptions): Promise<FastifyInstance> {
-  const { config, runtime, auth, logger } = options;
-  const context: RouteContext = { runtime, auth, logger, config };
+  const { config, runtime, auth, logger, credentials } = options;
+  const context: RouteContext = { runtime, auth, logger, config, credentials };
 
   const app = Fastify({
     logger: false,
@@ -70,6 +74,7 @@ export async function createApp(options: CreateAppOptions): Promise<FastifyInsta
   registerQueueRoutes(app, context, guard);
   registerLogRoutes(app, context, guard);
   registerSettingsRoutes(app, context, guard);
+  await registerCredentialRoutes(app, context, guard);
 
   app.setErrorHandler((rawError, request, reply) => {
     const error = rawError as { statusCode?: number; message?: string };
