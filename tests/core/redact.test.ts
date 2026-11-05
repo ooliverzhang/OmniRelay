@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import { REDACTED, maskSecret, redactRecord, redactText, redactValue } from '@omni-relay/core';
 
+// Obviously fake token-shaped string: only its shape matters, the redactor must
+// match the Discord token pattern without any real credential ever existing.
 const DISCORD_TOKEN = 'MFAKEfakefakefakefakefake.AAAAAA.fakefakefakefakefakefakefakefakefake';
 
 describe('redactText', () => {
