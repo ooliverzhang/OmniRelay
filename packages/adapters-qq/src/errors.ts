@@ -17,16 +17,13 @@ const QUOTA_CODES = new Set([304030, 304031, 304032, 304033]);
 const AUTH_CODES = new Set([11241, 11242, 11243, 12101, 12102]);
 const NOT_FOUND_CODES = new Set([304002, 304003, 304004]);
 
-export function mapQqHttpError(
-  status: number,
-  body: string,
-  retryAfterMs?: number,
-): BridgeError {
+export function mapQqHttpError(status: number, body: string, retryAfterMs?: number): BridgeError {
   const parsed = safeParse(body);
   const businessCode = parsed?.code ?? parsed?.err_code ?? null;
   const detail = (parsed?.message ?? parsed?.msg ?? '').slice(0, 200);
   const code = classify(status, businessCode, detail);
-  const retryable = code === 'rate_limited' || code === 'platform_unavailable' || code === 'internal';
+  const retryable =
+    code === 'rate_limited' || code === 'platform_unavailable' || code === 'internal';
 
   return new BridgeError({
     code,

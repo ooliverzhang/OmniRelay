@@ -21,24 +21,13 @@ export type ConnectionState =
 export type CredentialState = 'configured' | 'missing';
 
 export type DeliveryStatus =
-  | 'ignored'
-  | 'blocked'
-  | 'queued'
-  | 'sending'
-  | 'sent'
-  | 'failed'
-  | 'dead';
+  'ignored' | 'blocked' | 'queued' | 'sending' | 'sent' | 'failed' | 'dead';
 
 export type MessageStatus = 'ignored' | 'blocked' | 'queued' | 'sent' | 'failed';
 
 export type RuleDecision = 'reply' | 'ignore' | 'blocked';
 
-export type ReplyPolicyMode =
-  | 'always'
-  | 'mention_only'
-  | 'private_only'
-  | 'whitelist'
-  | 'disabled';
+export type ReplyPolicyMode = 'always' | 'mention_only' | 'private_only' | 'whitelist' | 'disabled';
 
 export type RateLimitScope = 'user' | 'conversation' | 'platform' | 'global';
 

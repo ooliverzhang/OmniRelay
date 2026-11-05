@@ -90,7 +90,8 @@ export class QqRestClient {
         : `/v2/users/${encodeURIComponent(input.openId)}/messages`;
 
     const body: Record<string, unknown> = {
-      msg_type: input.msgType ?? (input.mediaFileInfo ? QQ_MESSAGE_TYPE.MEDIA : QQ_MESSAGE_TYPE.TEXT),
+      msg_type:
+        input.msgType ?? (input.mediaFileInfo ? QQ_MESSAGE_TYPE.MEDIA : QQ_MESSAGE_TYPE.TEXT),
     };
     if (input.content !== undefined && input.content.length > 0) {
       body['content'] = input.content;
@@ -127,13 +128,14 @@ export class QqRestClient {
     const form = new FormData();
     form.append('file_type', String(input.fileType ?? QQ_FILE_TYPE.FILE));
     form.append('srv_send_msg', 'false');
-    form.append(
-      'file_data',
-      new Blob([input.data], { type: input.contentType }),
-      input.filename,
-    );
+    form.append('file_data', new Blob([input.data], { type: input.contentType }), input.filename);
 
-    const data = await this.request<{ file_info?: unknown; ttl?: unknown }>('POST', path, form, true);
+    const data = await this.request<{ file_info?: unknown; ttl?: unknown }>(
+      'POST',
+      path,
+      form,
+      true,
+    );
     const fileInfo = typeof data.file_info === 'string' ? data.file_info : null;
     if (!fileInfo) {
       throw new BridgeError({

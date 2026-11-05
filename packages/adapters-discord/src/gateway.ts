@@ -9,11 +9,7 @@ import {
 } from './types.js';
 
 export type DiscordGatewayState =
-  | 'disconnected'
-  | 'connecting'
-  | 'connected'
-  | 'reconnecting'
-  | 'error';
+  'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'error';
 
 export interface DiscordGatewayLogger {
   debug(message: string, meta?: Record<string, unknown>): void;
@@ -138,7 +134,9 @@ export class DiscordGateway {
     const factory = this.options.createSocket;
     let socket: DiscordSocketLike;
     try {
-      socket = factory ? factory(this.options.gatewayUrl) : createDefaultSocket(this.options.gatewayUrl);
+      socket = factory
+        ? factory(this.options.gatewayUrl)
+        : createDefaultSocket(this.options.gatewayUrl);
     } catch (error) {
       this.reportError(error);
       this.scheduleReconnect('socket_create_failed');
@@ -150,7 +148,12 @@ export class DiscordGateway {
       this.logger?.debug('discord gateway socket open');
     });
     socket.on('message', (data: unknown) => {
-      const text = typeof data === 'string' ? data : Buffer.isBuffer(data) ? data.toString('utf8') : String(data);
+      const text =
+        typeof data === 'string'
+          ? data
+          : Buffer.isBuffer(data)
+            ? data.toString('utf8')
+            : String(data);
       this.onRawMessage(text);
     });
     socket.on('close', (code: number) => {

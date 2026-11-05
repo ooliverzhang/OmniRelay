@@ -133,7 +133,12 @@ export function SettingsPage() {
             >
               刷新
             </Button>
-            <Button size="sm" variant="primary" loading={updateSettings.isPending} onClick={handleSave}>
+            <Button
+              size="sm"
+              variant="primary"
+              loading={updateSettings.isPending}
+              onClick={handleSave}
+            >
               保存设置
             </Button>
           </>
@@ -174,7 +179,9 @@ export function SettingsPage() {
                   <Checkbox
                     label="私聊允许无 @"
                     checked={form.allowPrivateWithoutMention}
-                    onChange={(event) => patch({ allowPrivateWithoutMention: event.target.checked })}
+                    onChange={(event) =>
+                      patch({ allowPrivateWithoutMention: event.target.checked })
+                    }
                   />
                   <Checkbox
                     label="群聊允许无 @"
@@ -184,7 +191,9 @@ export function SettingsPage() {
                   <Checkbox
                     label="频道允许无 @"
                     checked={form.allowChannelWithoutMention}
-                    onChange={(event) => patch({ allowChannelWithoutMention: event.target.checked })}
+                    onChange={(event) =>
+                      patch({ allowChannelWithoutMention: event.target.checked })
+                    }
                   />
                 </div>
               </FormSection>
@@ -293,7 +302,11 @@ export function SettingsPage() {
                 { label: 'SQLite 路径', value: view.paths.sqlitePath, mono: true },
                 { label: 'OneBot 路径', value: view.onebot.websocketPath, mono: true },
                 { label: '日志级别', value: view.logging.level, mono: false },
-                { label: '日志美化输出', value: view.logging.pretty ? '开启' : '关闭', mono: false },
+                {
+                  label: '日志美化输出',
+                  value: view.logging.pretty ? '开启' : '关闭',
+                  mono: false,
+                },
                 {
                   label: '面板认证',
                   value: view.web.adminAuth ? '已启用' : '未启用',

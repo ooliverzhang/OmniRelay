@@ -31,7 +31,12 @@ async function connectOneBot(port: number, token: string): Promise<OneBotClient>
   const events: Array<Record<string, unknown>> = [];
   const responses: Array<Record<string, unknown>> = [];
   socket.on('message', (data: unknown) => {
-    const text = typeof data === 'string' ? data : Buffer.isBuffer(data) ? data.toString('utf8') : String(data);
+    const text =
+      typeof data === 'string'
+        ? data
+        : Buffer.isBuffer(data)
+          ? data.toString('utf8')
+          : String(data);
     const payload = JSON.parse(text) as Record<string, unknown>;
     if (payload['post_type'] === 'message') {
       events.push(payload);
@@ -273,9 +278,7 @@ describe('Discord <-> OneBot bridge integration', () => {
     const inbound = await waitFor(() => client.events[0], 3_000, 'inbound event');
     const groupId = Number(inbound['group_id']);
 
-    client.socket.send(
-      JSON.stringify({ action: 'get_login_info', params: {}, echo: 'login-1' }),
-    );
+    client.socket.send(JSON.stringify({ action: 'get_login_info', params: {}, echo: 'login-1' }));
     const login = await waitFor(
       () => client.responses.find((entry) => entry['echo'] === 'login-1'),
       3_000,

@@ -10,7 +10,7 @@
 | 项目 | 状态 |
 | --- | --- |
 | `npm run typecheck` | ✅ 通过 |
-| `npm test` | ✅ 34 文件 / 356 用例 |
+| `npm test` | ✅ 35 文件 / 372 用例 |
 | `npm run build` | ✅ 通过（后端 + 前端） |
 | `npm run web:test` | ✅ 4 文件 / 36 用例 |
 | 进程级冒烟（真实启动构建产物） | ✅ `/healthz` `/readyz` `/status` / SPA / `/api/session` |
@@ -183,6 +183,8 @@ cp data/bridge.sqlite data/bridge-$(date +%F).sqlite
 | 14 | OneBot send_msg 能发到 QQ | `tests/integration/qq-bridge.test.ts`（被动回复 `msg_id`/`msg_seq`） |
 | 15 | Echo 不会错配 | `tests/onebot/registry.test.ts` + `tests/onebot/server.test.ts`（echo 回填、迟到响应丢弃） |
 | 16 | 重复消息不会重复投递 | `tests/integration/discord-bridge.test.ts` 去重用例 + `tests/storage/dedupe.test.ts` |
+| 16b | 可选 Action `get_msg`/`delete_msg`/`get_group_member_list` 可用 | `tests/integration/optional-actions.test.ts`（10 用例：回放、真实撤回、1404、1400、QQ 1405、成员列表） |
+| 16c | QQ 附件过期时间透传到 OneBot | `tests/integration/optional-actions.test.ts` + `tests/core/onebot.test.ts`（`url_expires_at`） |
 | 17 | QQ 主动消息限制返回明确错误、不无限重试 | `tests/integration/qq-bridge.test.ts`（死信 `capability_unsupported`，outbox 清空） |
 | 18 | Token 不出现在日志中 | `tests/onebot/errors.test.ts`（`[redacted]`）+ `apps/server/src/logger.ts` 脱敏实现 |
 | 19 | 控制台不返回 Token/AppSecret | `tests/api/console.test.ts` 与 `tests/integration/qq-bridge.test.ts` 的“不含凭据”断言 |
@@ -191,9 +193,13 @@ cp data/bridge.sqlite data/bridge-$(date +%F).sqlite
 
 ## 10. 已知限制
 
-1. 入站媒体不做本地缓存：QQ 临时附件 URL 会过期，请在宿主侧立即下载。
-2. 未实现 `delete_msg` / `get_msg` / `get_group_member_list`（可选 Action）。
-3. 只推送 `message` 与 `meta_event`；`notice` / `request` 未实现。
-4. 控制台为单管理员会话，无多用户与 RBAC。
-5. Docker 镜像未在本机实际构建验证（无 Docker 环境）。
-6. 未接入 ESLint（仅 Prettier）。
+以下均为规范标注为“可选/推荐”且尚未实施的项，不是技术不可行项：
+
+1. 入站媒体不做本地落盘缓存：QQ 临时附件 URL 的过期时间会通过 OneBot 段的
+   `url_expires_at` 透出（非标准扩展），但桥不代为下载，请在宿主侧按时间立即抓取。
+2. 只推送 `message` 与 `meta_event`；`notice` / `request` 未实现。
+3. `get_group_member_list` 只返回桥观察到的成员（QQ 无法枚举全量群成员）。
+4. `delete_msg` 在 QQ 上返回 `1405`（官方无撤回接口），Discord 上真实撤回。
+5. 控制台为单管理员会话，无多用户与 RBAC（规范未要求）。
+6. Docker 镜像未在本机实际构建验证（无 Docker 环境）。
+7. 未接入 ESLint（仅 Prettier）。

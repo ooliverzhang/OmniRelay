@@ -126,6 +126,40 @@ export function createMessageRepo(db: StorageDb): MessageRepo {
       return created;
     },
 
+    getByNativeMessageId(platform: Platform, nativeMessageId: string): MessageRecordRow | null {
+      if (nativeMessageId.length === 0) {
+        return null;
+      }
+      const row = rowOf(
+        db
+          .statement(
+            `SELECT ${COLUMNS} FROM messages
+             WHERE platform = ? AND native_message_id = ?
+             ORDER BY created_at DESC, id DESC
+             LIMIT 1`,
+          )
+          .get(platform, nativeMessageId),
+      );
+      return row === null ? null : mapMessage(row);
+    },
+
+    getByBridgeMessageId(bridgeMessageId: string): MessageRecordRow | null {
+      if (bridgeMessageId.length === 0) {
+        return null;
+      }
+      const row = rowOf(
+        db
+          .statement(
+            `SELECT ${COLUMNS} FROM messages
+             WHERE bridge_message_id = ?
+             ORDER BY created_at DESC, id DESC
+             LIMIT 1`,
+          )
+          .get(bridgeMessageId),
+      );
+      return row === null ? null : mapMessage(row);
+    },
+
     list(query) {
       const conditions: string[] = [];
       const params: SqlParam[] = [];

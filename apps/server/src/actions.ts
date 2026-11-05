@@ -1,7 +1,9 @@
 import {
   BridgeError,
   ONEBOT_PROTOCOL_VERSION,
+  PLATFORMS,
   type ConversationKind,
+  type OneBotMessageEvent,
   type OneBotActionResponse,
   type OneBotGroupInfo,
   type OneBotGroupMemberInfo,
@@ -14,7 +16,13 @@ import {
   type UnifiedMessageEvent,
   type UnifiedSegment,
 } from '@omni-relay/shared-types';
-import { onebotSegmentsToUnified, parseCqString, truncate } from '@omni-relay/core';
+import {
+  onebotSegmentsToUnified,
+  parseCqString,
+  truncate,
+  unifiedSegmentsToOneBotSegments,
+} from '@omni-relay/core';
+import type { MessageRecordRow } from '@omni-relay/storage';
 import type { ActionContext, ActionHandlerResult, ActionRegistry } from '@omni-relay/onebot';
 
 import type { BridgeRuntime } from './runtime.js';
@@ -139,9 +147,172 @@ export function registerActions(registry: ActionRegistry, runtime: BridgeRuntime
     sendMessage(runtime, 'group', params, context),
   );
 
+  registry.register('get_msg', async (params) => {
+    const messageId = requireMessageId(params);
+    return { data: buildGetMsgResponse(runtime, messageId) };
+  });
+
+  registry.register('delete_msg', async (params) => {
+    const messageId = requireMessageId(params);
+    const record = findStoredMessage(runtime, messageId);
+    if (!record) {
+      throw new BridgeError({
+        code: 'not_found',
+        message: `message_not_found:${messageId}`,
+        retryable: false,
+      });
+    }
+    if (!record.nativeMessageId) {
+      throw new BridgeError({
+        code: 'not_found',
+        message: 'message_has_no_native_id',
+        retryable: false,
+      });
+    }
+    await runtime.deletePlatformMessage(
+      record.platform,
+      record.conversationNativeId,
+      record.nativeMessageId,
+    );
+    return {};
+  });
+
+  registry.register('get_group_member_list', async (params) => {
+    const groupId = requireInteger(params, 'group_id');
+    const group = runtime.storage.ids.getByOneBotId('group', groupId);
+    if (!group) {
+      throw new BridgeError({
+        code: 'not_found',
+        message: `group_not_found:${groupId}`,
+        retryable: false,
+      });
+    }
+    return { data: listKnownMembers(runtime, group.platform, group.nativeId, group.onebotId) };
+  });
+
   logger.info('onebot actions registered', {
     event: 'onebot.actions',
     actions: registry.list().length,
+  });
+}
+
+/** Resolves a OneBot `message_id` to the stored inbound message, when known. */
+function findStoredMessage(runtime: BridgeRuntime, messageId: string): MessageRecordRow | null {
+  const direct = runtime.storage.messages.getByBridgeMessageId(messageId);
+  if (direct) {
+    return direct;
+  }
+  for (const platform of PLATFORMS) {
+    const row = runtime.storage.messages.getByNativeMessageId(platform, messageId);
+    if (row) {
+      return row;
+    }
+  }
+  return null;
+}
+
+function buildGetMsgResponse(runtime: BridgeRuntime, messageId: string): OneBotMessageEvent {
+  const record = findStoredMessage(runtime, messageId);
+  if (!record) {
+    throw new BridgeError({
+      code: 'not_found',
+      message: `message_not_found:${messageId}`,
+      retryable: false,
+    });
+  }
+  const onebotUserId =
+    record.onebotUserId ??
+    runtime.storage.ids.getOrCreate({
+      platform: record.platform,
+      nativeKind: 'user',
+      nativeId: record.senderNativeId,
+    }).onebotId;
+  const isPrivate = record.conversationKind === 'private';
+  const onebotGroupId = isPrivate
+    ? null
+    : (record.onebotGroupId ??
+      runtime.storage.ids.getOrCreate({
+        platform: record.platform,
+        nativeKind: runtime.conversationNativeKindOf(record.platform),
+        nativeId: record.conversationNativeId,
+      }).onebotId);
+
+  const event: OneBotMessageEvent = {
+    time: Math.floor(Date.parse(record.createdAt) / 1000) || Math.floor(Date.now() / 1000),
+    self_id: runtime.getSelfId(),
+    post_type: 'message',
+    message_type: isPrivate ? 'private' : 'group',
+    sub_type: isPrivate ? 'friend' : 'normal',
+    message_id: record.nativeMessageId ?? record.bridgeMessageId,
+    user_id: onebotUserId,
+    message: unifiedSegmentsToOneBotSegments(record.segments, {
+      resolveMentionUserId: (nativeUserId) =>
+        runtime.storage.ids.getByOneBotId('user', Number(nativeUserId))?.onebotId ??
+        runtime.storage.ids.getOrCreate({
+          platform: record.platform,
+          nativeKind: 'user',
+          nativeId: nativeUserId,
+        }).onebotId,
+    }),
+    raw_message: record.text,
+  };
+  if (onebotGroupId !== null) {
+    event.group_id = onebotGroupId;
+  }
+  if (record.senderDisplayName) {
+    event.sender = {
+      user_id: onebotUserId,
+      nickname: record.senderDisplayName,
+    };
+  }
+  return event;
+}
+
+/**
+ * QQ only pushes @-mentions, so a full roster is not obtainable. We return the
+ * members the bridge has actually observed instead of fabricating a list.
+ */
+function listKnownMembers(
+  runtime: BridgeRuntime,
+  platform: Platform,
+  groupNativeId: string,
+  onebotGroupId: number,
+): OneBotGroupMemberInfo[] {
+  const seen = new Map<number, OneBotGroupMemberInfo>();
+  const page = runtime.storage.messages.list({
+    platform,
+    conversationNativeId: groupNativeId,
+    page: 1,
+    pageSize: 200,
+  });
+  for (const message of page.items) {
+    const userId = message.onebotUserId;
+    if (userId === null || seen.has(userId)) {
+      continue;
+    }
+    seen.set(userId, {
+      group_id: onebotGroupId,
+      user_id: userId,
+      nickname: message.senderDisplayName ?? message.senderNativeId,
+      card: '',
+      role: 'member',
+    });
+  }
+  return [...seen.values()];
+}
+
+function requireMessageId(params: Record<string, unknown>): string {
+  const raw = params['message_id'];
+  if (typeof raw === 'number' && Number.isFinite(raw)) {
+    return String(Math.trunc(raw));
+  }
+  if (typeof raw === 'string' && raw.trim().length > 0) {
+    return raw.trim();
+  }
+  throw new BridgeError({
+    code: 'invalid_config',
+    message: 'missing_or_invalid_param:message_id',
+    retryable: false,
   });
 }
 

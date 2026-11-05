@@ -41,7 +41,11 @@ export function Pagination({
             ))}
           </select>
         ) : null}
-        <Button size="sm" disabled={disabled || current <= 1} onClick={() => onPageChange(current - 1)}>
+        <Button
+          size="sm"
+          disabled={disabled || current <= 1}
+          onClick={() => onPageChange(current - 1)}
+        >
           上一页
         </Button>
         <Button

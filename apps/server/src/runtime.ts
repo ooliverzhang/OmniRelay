@@ -29,8 +29,19 @@ import {
   unifiedToOneBotEvent,
 } from '@omni-relay/core';
 import { evaluateMessageRule } from '@omni-relay/rules';
-import { createDeliveryPlanner, createOutboxWorker, type DeliveryPlanner, type OutboxSender, type OutboxWorker } from '@omni-relay/queue';
-import { createActionRegistry, createOneBotServer, type ActionRegistry, type OneBotServer } from '@omni-relay/onebot';
+import {
+  createDeliveryPlanner,
+  createOutboxWorker,
+  type DeliveryPlanner,
+  type OutboxSender,
+  type OutboxWorker,
+} from '@omni-relay/queue';
+import {
+  createActionRegistry,
+  createOneBotServer,
+  type ActionRegistry,
+  type OneBotServer,
+} from '@omni-relay/onebot';
 import {
   DiscordAdapter,
   DiscordGateway,
@@ -63,7 +74,12 @@ export interface PlatformConnection {
 export interface RuntimeStatusSnapshot {
   startedAt: string;
   uptimeSeconds: number;
-  onebot: { connected: boolean; clients: number; lastEventAt: string | null; pendingActions: number };
+  onebot: {
+    connected: boolean;
+    clients: number;
+    lastEventAt: string | null;
+    pendingActions: number;
+  };
   platforms: PlatformConnection[];
 }
 
@@ -249,7 +265,10 @@ export class BridgeRuntime {
   getStatus(): RuntimeStatusSnapshot {
     return {
       startedAt: this.startedAtDate.toISOString(),
-      uptimeSeconds: Math.max(0, Math.round((this.now().getTime() - this.startedAtDate.getTime()) / 1000)),
+      uptimeSeconds: Math.max(
+        0,
+        Math.round((this.now().getTime() - this.startedAtDate.getTime()) / 1000),
+      ),
       onebot: this.onebot.getStatus(),
       platforms: PLATFORMS.map((platform) => this.getPlatformConnection(platform)),
     };
@@ -319,13 +338,12 @@ export class BridgeRuntime {
 
   getPlatformSettingsView(platform: Platform): PlatformSettingsView {
     const stored =
-      this.storage.settings.get<Partial<PlatformSettingsView>>(SETTINGS_KEYS.platformSettings(platform)) ??
-      {};
+      this.storage.settings.get<Partial<PlatformSettingsView>>(
+        SETTINGS_KEYS.platformSettings(platform),
+      ) ?? {};
     const defaults: PlatformSettingsView = {
-      guildAllowlist:
-        platform === 'discord' ? [...this.config.discord.guildAllowlist] : [],
-      channelAllowlist:
-        platform === 'discord' ? [...this.config.discord.channelAllowlist] : [],
+      guildAllowlist: platform === 'discord' ? [...this.config.discord.guildAllowlist] : [],
+      channelAllowlist: platform === 'discord' ? [...this.config.discord.channelAllowlist] : [],
       groupAllowlist: platform === 'qq-official' ? [...this.config.qq.groupAllowlist] : [],
       allowProactivePrivate:
         platform === 'qq-official' ? this.config.qq.allowProactivePrivate : false,
@@ -369,8 +387,7 @@ export class BridgeRuntime {
       groupAllowlist: sanitizeIdList(patch.groupAllowlist ?? current.groupAllowlist),
       allowProactivePrivate: patch.allowProactivePrivate ?? current.allowProactivePrivate,
       allowProactiveGroup: patch.allowProactiveGroup ?? current.allowProactiveGroup,
-      receiveAllGroupMessages:
-        patch.receiveAllGroupMessages ?? current.receiveAllGroupMessages,
+      receiveAllGroupMessages: patch.receiveAllGroupMessages ?? current.receiveAllGroupMessages,
       messageContentIntent: patch.messageContentIntent ?? current.messageContentIntent,
     };
     this.storage.settings.set(SETTINGS_KEYS.platformSettings(platform), next);
@@ -403,7 +420,11 @@ export class BridgeRuntime {
       return { ok: false, message: '平台未初始化' };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      this.logger.warn('platform test failed', { event: 'platform.test', platform, error: message });
+      this.logger.warn('platform test failed', {
+        event: 'platform.test',
+        platform,
+        error: message,
+      });
       return { ok: false, message: `连接测试失败：${message}` };
     }
   }
@@ -441,7 +462,8 @@ export class BridgeRuntime {
         }
         continue;
       }
-      const state = 'state' in bundle.adapter.getStatus() ? bundle.adapter.getStatus().state : 'disconnected';
+      const state =
+        'state' in bundle.adapter.getStatus() ? bundle.adapter.getStatus().state : 'disconnected';
       if (enabled && state === 'disconnected') {
         bundle.gateway.connect();
         this.logger.info('platform connecting', { event: 'platform.connect', platform });
@@ -479,8 +501,7 @@ export class BridgeRuntime {
           name: 'Bot Token',
           env: this.config.discord.tokenEnv,
           state: (this.env[this.config.discord.tokenEnv] ? 'configured' : 'missing') as
-            | 'configured'
-            | 'missing',
+            'configured' | 'missing',
         },
       ];
     }
@@ -489,15 +510,13 @@ export class BridgeRuntime {
         name: 'AppID',
         env: this.config.qq.appIdEnv,
         state: (this.env[this.config.qq.appIdEnv] ? 'configured' : 'missing') as
-          | 'configured'
-          | 'missing',
+          'configured' | 'missing',
       },
       {
         name: 'AppSecret',
         env: this.config.qq.appSecretEnv,
         state: (this.env[this.config.qq.appSecretEnv] ? 'configured' : 'missing') as
-          | 'configured'
-          | 'missing',
+          'configured' | 'missing',
       },
     ];
   }
@@ -778,7 +797,12 @@ export class BridgeRuntime {
   }
 
   /** Runs one outbox batch immediately; used by tests and manual operations. */
-  async processQueueOnce(): Promise<{ claimed: number; sent: number; retried: number; dead: number }> {
+  async processQueueOnce(): Promise<{
+    claimed: number;
+    sent: number;
+    retried: number;
+    dead: number;
+  }> {
     return this.worker.tick();
   }
 
@@ -864,7 +888,11 @@ export class BridgeRuntime {
       return;
     }
 
-    const onebotEvent = this.buildOneBotEvent(event, senderMapping.onebotId, conversationMapping.onebotId);
+    const onebotEvent = this.buildOneBotEvent(
+      event,
+      senderMapping.onebotId,
+      conversationMapping.onebotId,
+    );
     const delivered = this.onebot.broadcastEvent(onebotEvent);
     const status = delivered > 0 ? 'sent' : 'queued';
     const reason = delivered > 0 ? evaluation.reason : `${evaluation.reason};no_onebot_client`;
@@ -914,7 +942,9 @@ export class BridgeRuntime {
       expiresAt: event.replyContext?.expiresAt ?? null,
     });
     if (this.lastInbound.size > 5_000) {
-      const oldest = [...this.lastInbound.entries()].sort((a, b) => a[1].receivedAt - b[1].receivedAt)[0];
+      const oldest = [...this.lastInbound.entries()].sort(
+        (a, b) => a[1].receivedAt - b[1].receivedAt,
+      )[0];
       if (oldest) {
         this.lastInbound.delete(oldest[0]);
       }
@@ -937,7 +967,11 @@ export class BridgeRuntime {
   }
 
   /** Guard used by the OneBot action layer before anything is queued. */
-  assertDeliveryAllowed(platform: Platform, conversationKind: 'private' | 'group' | 'channel', proactive: boolean): void {
+  assertDeliveryAllowed(
+    platform: Platform,
+    conversationKind: 'private' | 'group' | 'channel',
+    proactive: boolean,
+  ): void {
     const capabilities = this.getCapabilities(platform);
     const check = checkDeliveryCapability(capabilities, { conversationKind, proactive });
     if (!check.allowed) {
@@ -949,8 +983,55 @@ export class BridgeRuntime {
     }
   }
 
+  /** Native id kind used for a group/channel conversation on a given platform. */
+  conversationNativeKindOf(platform: Platform): 'group' | 'channel' {
+    return platform === 'discord' ? 'channel' : 'group';
+  }
+
   getLogger(): AppLogger {
     return this.logger;
+  }
+
+  /**
+   * Deletes a message on the origin platform.
+   *
+   * Only Discord exposes a recall API; QQ official bots have no delete endpoint,
+   * so the capability is reported as unsupported instead of silently pretending
+   * the message was removed.
+   */
+  async deletePlatformMessage(
+    platform: Platform,
+    conversationNativeId: string,
+    nativeMessageId: string,
+  ): Promise<void> {
+    if (!this.isPlatformEnabled(platform)) {
+      throw new BridgeError({
+        code: 'platform_unavailable',
+        message: `platform_disabled:${platform}`,
+        retryable: false,
+      });
+    }
+    if (platform === 'qq-official') {
+      throw new BridgeError({
+        code: 'capability_unsupported',
+        message: 'qq_official_has_no_message_recall_api',
+        retryable: false,
+      });
+    }
+    const bundle = this.discord;
+    if (!bundle) {
+      throw new BridgeError({
+        code: 'platform_unavailable',
+        message: this.missingCredentialsHint('discord'),
+        retryable: false,
+      });
+    }
+    await bundle.rest.deleteMessage(conversationNativeId, nativeMessageId);
+    this.logger.info('message deleted on platform', {
+      event: 'platform.delete',
+      platform,
+      conversation: conversationNativeId,
+    });
   }
 
   newActionEventId(): string {

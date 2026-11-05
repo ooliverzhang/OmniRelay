@@ -45,7 +45,8 @@ export function RulesPage() {
     toggleRule.mutate(
       { id: rule.id, enabled: !rule.enabled },
       {
-        onSuccess: (updated) => toast.success(`规则「${updated.name}」已${updated.enabled ? '启用' : '停用'}`),
+        onSuccess: (updated) =>
+          toast.success(`规则「${updated.name}」已${updated.enabled ? '启用' : '停用'}`),
         onError: (error) => toast.error(errorMessage(error, '更新规则状态失败')),
       },
     );
@@ -204,29 +205,30 @@ export function RulesPage() {
     },
   ];
 
-  const evaluatedColumns: Array<Column<{ id: string; name: string; matched: boolean; reason: string }>> =
-    [
-      {
-        key: 'name',
-        header: '规则',
-        render: (row) => <span className="text-slate-200">{row.name}</span>,
-      },
-      {
-        key: 'matched',
-        header: '结果',
-        align: 'center',
-        render: (row) => (
-          <Badge tone={row.matched ? 'success' : 'neutral'}>{row.matched ? '命中' : '未命中'}</Badge>
-        ),
-      },
-      {
-        key: 'reason',
-        header: '原因',
-        render: (row) => (
-          <span className="font-mono text-xs text-slate-400">{row.reason || '—'}</span>
-        ),
-      },
-    ];
+  const evaluatedColumns: Array<
+    Column<{ id: string; name: string; matched: boolean; reason: string }>
+  > = [
+    {
+      key: 'name',
+      header: '规则',
+      render: (row) => <span className="text-slate-200">{row.name}</span>,
+    },
+    {
+      key: 'matched',
+      header: '结果',
+      align: 'center',
+      render: (row) => (
+        <Badge tone={row.matched ? 'success' : 'neutral'}>{row.matched ? '命中' : '未命中'}</Badge>
+      ),
+    },
+    {
+      key: 'reason',
+      header: '原因',
+      render: (row) => (
+        <span className="font-mono text-xs text-slate-400">{row.reason || '—'}</span>
+      ),
+    },
+  ];
 
   const testResult = testMutation.data;
 
@@ -270,7 +272,11 @@ export function RulesPage() {
         minWidthClassName="min-w-[900px]"
       />
 
-      <Card className="mt-4" title="规则测试器" description="使用离线规则引擎预演，不会产生任何真实消息">
+      <Card
+        className="mt-4"
+        title="规则测试器"
+        description="使用离线规则引擎预演，不会产生任何真实消息"
+      >
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <FormField label="平台" htmlFor="test-platform">
             <Select
@@ -301,7 +307,11 @@ export function RulesPage() {
           </FormField>
 
           <FormField label="指定规则（可选）" htmlFor="test-rule" hint="留空表示评估全部规则">
-            <Select id="test-rule" value={testRuleId} onChange={(event) => setTestRuleId(event.target.value)}>
+            <Select
+              id="test-rule"
+              value={testRuleId}
+              onChange={(event) => setTestRuleId(event.target.value)}
+            >
               <option value="">全部规则</option>
               {rules.map((rule) => (
                 <option key={rule.id} value={rule.id}>
@@ -350,7 +360,12 @@ export function RulesPage() {
             checked={testReplyToBot}
             onChange={(event) => setTestReplyToBot(event.target.checked)}
           />
-          <Button variant="primary" className="ml-auto" loading={testMutation.isPending} onClick={handleTest}>
+          <Button
+            variant="primary"
+            className="ml-auto"
+            loading={testMutation.isPending}
+            onClick={handleTest}
+          >
             运行测试
           </Button>
         </div>
@@ -401,9 +416,7 @@ export function RulesPage() {
         open={pendingDelete !== null}
         title="删除规则"
         description={
-          pendingDelete
-            ? `确定要删除规则「${pendingDelete.name}」吗？该操作不可撤销。`
-            : undefined
+          pendingDelete ? `确定要删除规则「${pendingDelete.name}」吗？该操作不可撤销。` : undefined
         }
         confirmText="删除"
         loading={deleteRule.isPending}

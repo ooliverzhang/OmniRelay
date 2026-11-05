@@ -89,7 +89,9 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   }
 
   if (!response.ok) {
-    const message = isApiErrorBody(payload) ? payload.error.message : httpFallbackMessage(response.status);
+    const message = isApiErrorBody(payload)
+      ? payload.error.message
+      : httpFallbackMessage(response.status);
     const code = isApiErrorBody(payload) ? payload.error.code : `http_${response.status}`;
     throw new ApiError(message, code, response.status);
   }
@@ -99,8 +101,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
 
 export const apiClient = {
   get: <T>(path: string, signal?: AbortSignal): Promise<T> => request<T>(path, { signal }),
-  post: <T>(path: string, body?: unknown): Promise<T> =>
-    request<T>(path, { method: 'POST', body }),
+  post: <T>(path: string, body?: unknown): Promise<T> => request<T>(path, { method: 'POST', body }),
   patch: <T>(path: string, body?: unknown): Promise<T> =>
     request<T>(path, { method: 'PATCH', body }),
   delete: <T>(path: string): Promise<T> => request<T>(path, { method: 'DELETE' }),

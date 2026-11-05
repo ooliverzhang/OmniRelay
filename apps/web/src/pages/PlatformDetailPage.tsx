@@ -166,7 +166,11 @@ export function PlatformDetailPage() {
 
               {platformId === 'discord' ? (
                 <FormSection title="Discord 白名单" description="留空表示不限制，一行一个 ID">
-                  <FormField label="Guild 白名单" htmlFor="guild-allowlist" hint="Discord 服务器（Guild）ID 列表">
+                  <FormField
+                    label="Guild 白名单"
+                    htmlFor="guild-allowlist"
+                    hint="Discord 服务器（Guild）ID 列表"
+                  >
                     <TextArea
                       id="guild-allowlist"
                       rows={4}
@@ -175,7 +179,11 @@ export function PlatformDetailPage() {
                       onChange={(event) => patch({ guildAllowlist: event.target.value })}
                     />
                   </FormField>
-                  <FormField label="频道白名单" htmlFor="channel-allowlist" hint="Discord 频道（Channel）ID 列表">
+                  <FormField
+                    label="频道白名单"
+                    htmlFor="channel-allowlist"
+                    hint="Discord 频道（Channel）ID 列表"
+                  >
                     <TextArea
                       id="channel-allowlist"
                       rows={4}
@@ -193,7 +201,11 @@ export function PlatformDetailPage() {
                 </FormSection>
               ) : (
                 <FormSection title="QQ 官方机器人设置" description="群白名单与主动消息开关">
-                  <FormField label="群白名单" htmlFor="group-allowlist" hint="QQ 群 ID 列表，一行一个">
+                  <FormField
+                    label="群白名单"
+                    htmlFor="group-allowlist"
+                    hint="QQ 群 ID 列表，一行一个"
+                  >
                     <TextArea
                       id="group-allowlist"
                       rows={4}
@@ -202,7 +214,11 @@ export function PlatformDetailPage() {
                       onChange={(event) => patch({ groupAllowlist: event.target.value })}
                     />
                   </FormField>
-                  <FormField label="频道白名单" htmlFor="qq-channel-allowlist" hint="QQ 频道 ID 列表（如有）">
+                  <FormField
+                    label="频道白名单"
+                    htmlFor="qq-channel-allowlist"
+                    hint="QQ 频道 ID 列表（如有）"
+                  >
                     <TextArea
                       id="qq-channel-allowlist"
                       rows={3}

@@ -107,7 +107,8 @@ export function createHealthServer(options: HealthServerOptions): HealthServer {
         });
       });
       const address = server.address();
-      const port = typeof address === 'object' && address !== null ? address.port : config.server.healthPort;
+      const port =
+        typeof address === 'object' && address !== null ? address.port : config.server.healthPort;
       logger.info('health server listening', {
         event: 'health.listen',
         host: config.server.host,

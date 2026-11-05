@@ -58,9 +58,11 @@ describe('api client', () => {
   it('401 抛出 UnauthorizedError 并保留后端消息', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
-        jsonResponse(401, { error: { code: 'unauthorized', message: '未登录或会话已过期' } }),
-      ),
+      vi
+        .fn()
+        .mockResolvedValue(
+          jsonResponse(401, { error: { code: 'unauthorized', message: '未登录或会话已过期' } }),
+        ),
     );
 
     await expect(request('/api/dashboard')).rejects.toMatchObject({
@@ -74,9 +76,11 @@ describe('api client', () => {
   it('其他错误状态解析 {error:{code,message}} 为 ApiError', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
-        jsonResponse(500, { error: { code: 'internal_error', message: '数据库连接失败' } }),
-      ),
+      vi
+        .fn()
+        .mockResolvedValue(
+          jsonResponse(500, { error: { code: 'internal_error', message: '数据库连接失败' } }),
+        ),
     );
 
     await expect(request('/api/rules')).rejects.toBeInstanceOf(ApiError);
@@ -88,7 +92,10 @@ describe('api client', () => {
   });
 
   it('非 JSON 错误响应使用 HTTP 兜底文案', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(textResponse(503, '<html>bad gateway</html>')));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(textResponse(503, '<html>bad gateway</html>')),
+    );
 
     await expect(request('/api/queues')).rejects.toMatchObject({
       code: 'http_503',

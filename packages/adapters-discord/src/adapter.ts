@@ -11,11 +11,7 @@ import { normalizeDiscordMessage } from '@omni-relay/core';
 import type { DiscordRestClient } from './rest.js';
 import type { DiscordGateway, DiscordGatewayStatus } from './gateway.js';
 import { downloadMedia } from './media.js';
-import {
-  isDiscordDmChannel,
-  type DiscordChannel,
-  type DiscordMessage,
-} from './types.js';
+import { isDiscordDmChannel, type DiscordChannel, type DiscordMessage } from './types.js';
 
 export interface DiscordAdapterLogger {
   debug(message: string, meta?: Record<string, unknown>): void;
@@ -158,7 +154,9 @@ export class DiscordAdapter {
     this.lastEventAt = this.nowIso();
     const guildId = message.guild_id ?? null;
     if (!this.isConversationAllowed(guildId, message.channel_id)) {
-      this.logger?.debug('discord message filtered by allowlist', { channelId: message.channel_id });
+      this.logger?.debug('discord message filtered by allowlist', {
+        channelId: message.channel_id,
+      });
       return null;
     }
 
@@ -196,7 +194,8 @@ export class DiscordAdapter {
           height: attachment.height ?? null,
           contentType: attachment.content_type ?? null,
         })),
-        referencedMessageId: message.referenced_message?.id ?? message.message_reference?.message_id ?? null,
+        referencedMessageId:
+          message.referenced_message?.id ?? message.message_reference?.message_id ?? null,
         botUserId: this.getBotUserId(),
       },
       { now: this.now },
@@ -225,7 +224,12 @@ export class DiscordAdapter {
       const result = await this.rest.createMessage(channelId, {
         ...(chunk.length > 0 ? { content: chunk } : {}),
         ...(index === 0 && target.replyToNativeMessageId
-          ? { message_reference: { message_id: target.replyToNativeMessageId, fail_if_not_exists: false } }
+          ? {
+              message_reference: {
+                message_id: target.replyToNativeMessageId,
+                fail_if_not_exists: false,
+              },
+            }
           : {}),
         ...(isLastChunk && files.length > 0 ? { files } : {}),
         allowed_mentions: { parse: ['users'], replied_user: false },
@@ -257,7 +261,10 @@ export class DiscordAdapter {
     if ((message.mentions ?? []).some((mention) => mention.id === botId)) {
       return true;
     }
-    return (message.content ?? '').includes(`<@${botId}>`) || (message.content ?? '').includes(`<@!${botId}>`);
+    return (
+      (message.content ?? '').includes(`<@${botId}>`) ||
+      (message.content ?? '').includes(`<@!${botId}>`)
+    );
   }
 
   private prepareContent(segments: readonly UnifiedSegment[]): PreparedContent {

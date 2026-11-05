@@ -14,7 +14,14 @@ export interface FormFieldProps {
   children: ReactNode;
 }
 
-export function FormField({ label, hint, htmlFor, required, className = '', children }: FormFieldProps) {
+export function FormField({
+  label,
+  hint,
+  htmlFor,
+  required,
+  className = '',
+  children,
+}: FormFieldProps) {
   return (
     <div className={className}>
       {label ? (
@@ -38,10 +45,16 @@ export function TextArea({
   rows = 3,
   ...rest
 }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea rows={rows} {...rest} className={`field-input font-mono text-xs ${className}`} />;
+  return (
+    <textarea rows={rows} {...rest} className={`field-input font-mono text-xs ${className}`} />
+  );
 }
 
-export function Select({ className = '', children, ...rest }: SelectHTMLAttributes<HTMLSelectElement>) {
+export function Select({
+  className = '',
+  children,
+  ...rest
+}: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <select {...rest} className={`field-input ${className}`}>
       {children}

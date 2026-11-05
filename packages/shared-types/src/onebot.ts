@@ -46,12 +46,29 @@ export interface OneBotAtSegment {
 
 export interface OneBotImageSegment {
   type: 'image';
-  data: { file: string; url?: string; sub_type?: number; file_size?: number };
+  data: {
+    file: string;
+    url?: string;
+    sub_type?: number;
+    file_size?: number;
+    /**
+     * Non-standard extension: wall-clock expiry (ISO-8601) of a temporary CDN
+     * url, so hosts know to download the media before it disappears.
+     */
+    url_expires_at?: string;
+  };
 }
 
 export interface OneBotFileSegment {
   type: 'file';
-  data: { file: string; url?: string; name?: string; file_size?: number };
+  data: {
+    file: string;
+    url?: string;
+    name?: string;
+    file_size?: number;
+    /** Non-standard extension, see {@link OneBotImageSegment}. */
+    url_expires_at?: string;
+  };
 }
 
 export interface OneBotReplySegment {

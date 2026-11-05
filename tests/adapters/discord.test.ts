@@ -83,7 +83,9 @@ describe('DiscordRestClient', () => {
 
   it('maps 401 to a non-retryable unauthorized error', async () => {
     const { rest } = createRest(() => ({ status: 401, body: { message: '401: Unauthorized' } }));
-    const error = await rest.createMessage('chan-1', { content: 'x' }).catch((caught: unknown) => caught);
+    const error = await rest
+      .createMessage('chan-1', { content: 'x' })
+      .catch((caught: unknown) => caught);
     expect(error).toBeInstanceOf(BridgeError);
     expect((error as BridgeError).code).toBe('unauthorized');
     expect((error as BridgeError).retryable).toBe(false);
@@ -91,7 +93,9 @@ describe('DiscordRestClient', () => {
 
   it('rejects content longer than the Discord limit', async () => {
     const { rest } = createRest(() => ({ body: { id: 'never', channel_id: 'chan-1' } }));
-    await expect(rest.createMessage('chan-1', { content: 'x'.repeat(2_001) })).rejects.toMatchObject({
+    await expect(
+      rest.createMessage('chan-1', { content: 'x'.repeat(2_001) }),
+    ).rejects.toMatchObject({
       code: 'message_too_large',
     });
   });
@@ -123,7 +127,9 @@ describe('DiscordGateway', () => {
     const identify = socket.sentPayloads().find((payload) => payload['op'] === 2);
     expect(identify).toBeDefined();
     expect((identify?.['d'] as { token: string }).token).toBe('test-bot-token');
-    expect((identify?.['d'] as { intents: number }).intents).toBe(1 | (1 << 9) | (1 << 12) | (1 << 15));
+    expect((identify?.['d'] as { intents: number }).intents).toBe(
+      1 | (1 << 9) | (1 << 12) | (1 << 15),
+    );
 
     socket.receive({
       op: 0,
@@ -205,12 +211,16 @@ describe('DiscordGateway', () => {
 });
 
 describe('DiscordAdapter', () => {
-  function createAdapter(options: {
-    guildAllowlist?: string[];
-    channelAllowlist?: string[];
-    handler?: Parameters<typeof createFetchMock>[0];
-  } = {}) {
-    const store = createRest(options.handler ?? (() => ({ body: { id: 'sent-1', channel_id: 'chan-1' } })));
+  function createAdapter(
+    options: {
+      guildAllowlist?: string[];
+      channelAllowlist?: string[];
+      handler?: Parameters<typeof createFetchMock>[0];
+    } = {},
+  ) {
+    const store = createRest(
+      options.handler ?? (() => ({ body: { id: 'sent-1', channel_id: 'chan-1' } })),
+    );
     const logger = createSilentLogger();
     const adapter = new DiscordAdapter({
       rest: store.rest,
@@ -238,7 +248,9 @@ describe('DiscordAdapter', () => {
       timestamp: '2024-05-01T10:00:00.000Z',
       channel: { id: '300300300', type: 0, name: 'general' },
       mentions: [{ id: '100100100', username: 'OmniBot' }],
-      attachments: [{ url: 'https://cdn.test/a.png', filename: 'a.png', content_type: 'image/png' }],
+      attachments: [
+        { url: 'https://cdn.test/a.png', filename: 'a.png', content_type: 'image/png' },
+      ],
     });
 
     expect(event).not.toBeNull();
@@ -251,8 +263,12 @@ describe('DiscordAdapter', () => {
     const segments = event?.message ?? [];
     expect(segments.some((segment) => segment.type === 'mention')).toBe(true);
     expect(segments.some((segment) => segment.type === 'image')).toBe(true);
-    expect(segments.filter((segment) => segment.type === 'text').map((s) => (s.type === 'text' ? s.text : '')).join(''))
-      .not.toContain('<@100100100>');
+    expect(
+      segments
+        .filter((segment) => segment.type === 'text')
+        .map((s) => (s.type === 'text' ? s.text : ''))
+        .join(''),
+    ).not.toContain('<@100100100>');
   });
 
   it('normalizes a DM into a private conversation keyed by the author id', () => {
@@ -320,8 +336,14 @@ describe('DiscordAdapter', () => {
       conversationNativeId: '700700700',
       senderNativeId: 'onebot',
     };
-    await adapter.send({ kind: 'private', segments: [{ type: 'text', text: 'hi' }], proactive: false }, target);
-    await adapter.send({ kind: 'private', segments: [{ type: 'text', text: 'again' }], proactive: false }, target);
+    await adapter.send(
+      { kind: 'private', segments: [{ type: 'text', text: 'hi' }], proactive: false },
+      target,
+    );
+    await adapter.send(
+      { kind: 'private', segments: [{ type: 'text', text: 'again' }], proactive: false },
+      target,
+    );
 
     expect(mock.callsTo('/users/@me/channels')).toHaveLength(1);
     expect(mock.callsTo('/channels/dm-channel-1/messages')).toHaveLength(2);

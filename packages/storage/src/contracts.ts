@@ -59,8 +59,12 @@ export interface PageParams {
 }
 
 export function normalizePage(query: PageQuery): PageParams {
-  const page = Number.isFinite(query.page) && (query.page ?? 0) > 0 ? Math.floor(query.page as number) : 1;
-  const rawSize = Number.isFinite(query.pageSize) && (query.pageSize ?? 0) > 0 ? Math.floor(query.pageSize as number) : 25;
+  const page =
+    Number.isFinite(query.page) && (query.page ?? 0) > 0 ? Math.floor(query.page as number) : 1;
+  const rawSize =
+    Number.isFinite(query.pageSize) && (query.pageSize ?? 0) > 0
+      ? Math.floor(query.pageSize as number)
+      : 25;
   const pageSize = Math.min(Math.max(rawSize, 1), 200);
   return { page, pageSize };
 }
@@ -88,7 +92,11 @@ export interface IdMappingRepo {
     displayName: string,
   ): void;
   list(
-    query: PageQuery & { platform?: Platform | undefined; nativeKind?: NativeIdKind | undefined; search?: string | undefined },
+    query: PageQuery & {
+      platform?: Platform | undefined;
+      nativeKind?: NativeIdKind | undefined;
+      search?: string | undefined;
+    },
   ): Paged<IdMapping>;
   count(): number;
 }
@@ -99,7 +107,10 @@ export interface IdMappingRepo {
 
 export interface DedupeRepo {
   /** Returns `true` when the key is new, `false` when it was already seen. */
-  markSeen(key: string, options?: { ttlSeconds?: number | undefined; now?: Date | undefined }): boolean;
+  markSeen(
+    key: string,
+    options?: { ttlSeconds?: number | undefined; now?: Date | undefined },
+  ): boolean;
   has(key: string): boolean;
   prune(now?: Date): number;
   size(): number;
@@ -138,8 +149,14 @@ export interface OutboxRepo {
    * them. Claiming is what prevents two workers from sending the same record.
    */
   claimDue(options?: { limit?: number | undefined; now?: Date | undefined }): OutboxRecord[];
-  markSent(id: string, info?: { nativeMessageId?: string | undefined; now?: Date | undefined }): void;
-  markRetry(id: string, input: { failure: FailureInfo; nextAttemptAt: Date; now?: Date | undefined }): void;
+  markSent(
+    id: string,
+    info?: { nativeMessageId?: string | undefined; now?: Date | undefined },
+  ): void;
+  markRetry(
+    id: string,
+    input: { failure: FailureInfo; nextAttemptAt: Date; now?: Date | undefined },
+  ): void;
   /** Moves the record into `dead_letters` and deletes it from the outbox. */
   markDead(id: string, input: { failure: FailureInfo; now?: Date | undefined }): DeadLetterRecord;
   requeue(id: string, now?: Date): boolean;
@@ -286,7 +303,13 @@ export interface ConversationAggregateRow {
 export interface MessageRepo {
   record(input: MessageRecordInput): MessageRecordRow;
   list(query: MessageListQuery): Paged<MessageRecordRow>;
-  conversations(query: PageQuery & { platform?: Platform | undefined; search?: string | undefined }): Paged<ConversationAggregateRow>;
+  /** Looks a message up by native platform id (used by `get_msg`). */
+  getByNativeMessageId(platform: Platform, nativeMessageId: string): MessageRecordRow | null;
+  /** Looks a message up by the bridge message id. */
+  getByBridgeMessageId(bridgeMessageId: string): MessageRecordRow | null;
+  conversations(
+    query: PageQuery & { platform?: Platform | undefined; search?: string | undefined },
+  ): Paged<ConversationAggregateRow>;
   countLast24h(now?: Date): number;
   countByPlatformLast24h(now?: Date): PlatformCount[];
   /** Hourly buckets for the last 24 hours, oldest first. */
@@ -319,7 +342,13 @@ export interface LogEntryRow {
 
 export interface LogRepo {
   append(entry: LogEntryInput): void;
-  list(query: PageQuery & { level?: string | undefined; platform?: string | undefined; search?: string | undefined }): Paged<LogEntryRow>;
+  list(
+    query: PageQuery & {
+      level?: string | undefined;
+      platform?: string | undefined;
+      search?: string | undefined;
+    },
+  ): Paged<LogEntryRow>;
   recentErrors(limit?: number): LogEntryRow[];
   /** Keeps only the newest `maxRows` entries. */
   prune(maxRows?: number): number;

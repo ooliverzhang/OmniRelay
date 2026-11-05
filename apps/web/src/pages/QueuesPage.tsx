@@ -94,7 +94,9 @@ export function QueuesPage() {
     {
       key: 'platform',
       header: '平台',
-      render: (row) => <span className="text-xs text-slate-300">{platformLabel(row.platform)}</span>,
+      render: (row) => (
+        <span className="text-xs text-slate-300">{platformLabel(row.platform)}</span>
+      ),
     },
     {
       key: 'conversation',
@@ -102,7 +104,9 @@ export function QueuesPage() {
       render: (row) => (
         <div className="min-w-0">
           <p className="text-xs text-slate-300">{conversationKindLabel(row.conversationKind)}</p>
-          <p className="truncate font-mono text-[11px] text-slate-500">{row.conversationNativeId}</p>
+          <p className="truncate font-mono text-[11px] text-slate-500">
+            {row.conversationNativeId}
+          </p>
         </div>
       ),
     },
@@ -129,7 +133,9 @@ export function QueuesPage() {
       key: 'nextAttemptAt',
       header: '下次重试',
       render: (row) => (
-        <span className="whitespace-nowrap text-xs text-slate-400">{formatDateTime(row.nextAttemptAt)}</span>
+        <span className="whitespace-nowrap text-xs text-slate-400">
+          {formatDateTime(row.nextAttemptAt)}
+        </span>
       ),
     },
     {
@@ -139,7 +145,10 @@ export function QueuesPage() {
         row.lastErrorCode ? (
           <div className="min-w-0">
             <p className="font-mono text-[11px] text-rose-300">{row.lastErrorCode}</p>
-            <p className="max-w-[220px] truncate text-xs text-slate-500" title={row.lastErrorMessage ?? ''}>
+            <p
+              className="max-w-[220px] truncate text-xs text-slate-500"
+              title={row.lastErrorMessage ?? ''}
+            >
               {row.lastErrorMessage ?? '—'}
             </p>
           </div>
@@ -167,7 +176,9 @@ export function QueuesPage() {
     {
       key: 'platform',
       header: '平台',
-      render: (row) => <span className="text-xs text-slate-300">{platformLabel(row.platform)}</span>,
+      render: (row) => (
+        <span className="text-xs text-slate-300">{platformLabel(row.platform)}</span>
+      ),
     },
     {
       key: 'conversation',
@@ -175,7 +186,9 @@ export function QueuesPage() {
       render: (row) => (
         <div className="min-w-0">
           <p className="text-xs text-slate-300">{conversationKindLabel(row.conversationKind)}</p>
-          <p className="truncate font-mono text-[11px] text-slate-500">{row.conversationNativeId}</p>
+          <p className="truncate font-mono text-[11px] text-slate-500">
+            {row.conversationNativeId}
+          </p>
         </div>
       ),
     },
@@ -210,7 +223,9 @@ export function QueuesPage() {
       key: 'failedAt',
       header: '失败时间',
       render: (row) => (
-        <span className="whitespace-nowrap text-xs text-slate-400">{formatDateTime(row.failedAt)}</span>
+        <span className="whitespace-nowrap text-xs text-slate-400">
+          {formatDateTime(row.failedAt)}
+        </span>
       ),
     },
     {

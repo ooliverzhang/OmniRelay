@@ -2,7 +2,12 @@ import type { ConversationKind, PlatformCapabilities } from './platform.js';
 import type { DeliveryStatus } from './delivery.js';
 import type { NativeIdKind, OneBotIdKind } from './ids.js';
 import type { ConversationKind as Kind, Platform } from './platform.js';
-import type { MessageStatus, ReplyPolicyConfig, RuleTestResult, RulesEngineConfig } from './rules.js';
+import type {
+  MessageStatus,
+  ReplyPolicyConfig,
+  RuleTestResult,
+  RulesEngineConfig,
+} from './rules.js';
 import type { MessageRule } from './rules.js';
 import type { RetryPolicyConfig } from './delivery.js';
 

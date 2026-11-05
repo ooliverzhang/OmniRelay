@@ -1,6 +1,7 @@
 import type {
   OneBotAtSegment,
   OneBotFileSegment,
+  OneBotImageSegment,
   OneBotMessageEvent,
   OneBotSegment,
   UnifiedMessageEvent,
@@ -29,7 +30,7 @@ export function unifiedToOneBotEvent(
     sub_type: isPrivate ? 'friend' : 'normal',
     message_id: event.meta.nativeMessageId ?? event.eventId,
     user_id: options.userId,
-    message: convertSegments(event.message, options),
+    message: unifiedSegmentsToOneBotSegments(event.message, options),
   };
   const groupId = options.groupId;
   if (!isPrivate && groupId !== undefined && groupId !== null) {
@@ -38,9 +39,15 @@ export function unifiedToOneBotEvent(
   return result;
 }
 
-function convertSegments(
+/**
+ * Converts unified segments into OneBot segments.
+ *
+ * Shared by the inbound projection and by `get_msg`, which replays a stored
+ * message back to the host.
+ */
+export function unifiedSegmentsToOneBotSegments(
   segments: readonly UnifiedSegment[],
-  options: UnifiedToOneBotOptions,
+  options: Pick<UnifiedToOneBotOptions, 'resolveMentionUserId'> = {},
 ): OneBotSegment[] {
   const converted: OneBotSegment[] = [];
   for (const segment of segments) {
@@ -58,9 +65,14 @@ function convertSegments(
         }
         break;
       }
-      case 'image':
-        converted.push({ type: 'image', data: { file: segment.url, url: segment.url } });
+      case 'image': {
+        const data: OneBotImageSegment['data'] = { file: segment.url, url: segment.url };
+        if (segment.urlExpiresAt !== undefined) {
+          data.url_expires_at = segment.urlExpiresAt;
+        }
+        converted.push({ type: 'image', data });
         break;
+      }
       case 'file': {
         const data: OneBotFileSegment['data'] = {
           file: segment.filename,
@@ -69,6 +81,9 @@ function convertSegments(
         };
         if (segment.size !== undefined) {
           data.file_size = segment.size;
+        }
+        if (segment.urlExpiresAt !== undefined) {
+          data.url_expires_at = segment.urlExpiresAt;
         }
         const file: OneBotFileSegment = { type: 'file', data };
         converted.push(file);

@@ -59,13 +59,17 @@ export function LogsPage() {
       key: 'platform',
       header: '平台',
       render: (row) => (
-        <span className="text-xs text-slate-400">{row.platform ? platformLabel(row.platform) : '—'}</span>
+        <span className="text-xs text-slate-400">
+          {row.platform ? platformLabel(row.platform) : '—'}
+        </span>
       ),
     },
     {
       key: 'event',
       header: '事件',
-      render: (row) => <span className="font-mono text-[11px] text-slate-500">{row.event ?? '—'}</span>,
+      render: (row) => (
+        <span className="font-mono text-[11px] text-slate-500">{row.event ?? '—'}</span>
+      ),
     },
     {
       key: 'context',
@@ -73,7 +77,9 @@ export function LogsPage() {
       render: (row) =>
         row.context ? (
           <details className="group">
-            <summary className="cursor-pointer text-xs text-indigo-300 hover:underline">查看</summary>
+            <summary className="cursor-pointer text-xs text-indigo-300 hover:underline">
+              查看
+            </summary>
             <pre className="mt-1 max-h-40 max-w-[420px] overflow-auto rounded-md border border-slate-800 bg-slate-950/70 p-2 text-[11px] leading-relaxed text-slate-400">
               {JSON.stringify(row.context, null, 2)}
             </pre>

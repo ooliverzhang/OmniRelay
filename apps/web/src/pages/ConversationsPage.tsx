@@ -37,7 +37,11 @@ function MessageViewer({
     {
       key: 'createdAt',
       header: '时间',
-      render: (row) => <span className="whitespace-nowrap font-mono text-xs text-slate-400">{formatDateTime(row.createdAt)}</span>,
+      render: (row) => (
+        <span className="whitespace-nowrap font-mono text-xs text-slate-400">
+          {formatDateTime(row.createdAt)}
+        </span>
+      ),
     },
     {
       key: 'sender',
@@ -92,7 +96,8 @@ function MessageViewer({
           <div className="min-w-0">
             <h2 className="text-sm font-semibold text-slate-100">会话消息</h2>
             <p className="mt-0.5 truncate text-xs text-slate-500">
-              {platformLabel(conversation.platform)} · {conversationKindLabel(conversation.conversationKind)} ·{' '}
+              {platformLabel(conversation.platform)} ·{' '}
+              {conversationKindLabel(conversation.conversationKind)} ·{' '}
               <span className="font-mono">{conversation.conversationNativeId}</span>
             </p>
           </div>
@@ -147,13 +152,17 @@ export function ConversationsPage() {
       key: 'kind',
       header: '会话类型',
       render: (row) => (
-        <span className="text-xs text-slate-300">{conversationKindLabel(row.conversationKind)}</span>
+        <span className="text-xs text-slate-300">
+          {conversationKindLabel(row.conversationKind)}
+        </span>
       ),
     },
     {
       key: 'nativeId',
       header: '会话 ID',
-      render: (row) => <span className="font-mono text-xs text-slate-400">{row.conversationNativeId}</span>,
+      render: (row) => (
+        <span className="font-mono text-xs text-slate-400">{row.conversationNativeId}</span>
+      ),
     },
     {
       key: 'displayName',
@@ -174,13 +183,17 @@ export function ConversationsPage() {
       key: 'messageCount',
       header: '消息数',
       align: 'right',
-      render: (row) => <span className="tabular-nums text-slate-300">{formatNumber(row.messageCount)}</span>,
+      render: (row) => (
+        <span className="tabular-nums text-slate-300">{formatNumber(row.messageCount)}</span>
+      ),
     },
     {
       key: 'lastMessageAt',
       header: '最后消息时间',
       render: (row) => (
-        <span className="whitespace-nowrap text-xs text-slate-400">{formatDateTime(row.lastMessageAt)}</span>
+        <span className="whitespace-nowrap text-xs text-slate-400">
+          {formatDateTime(row.lastMessageAt)}
+        </span>
       ),
     },
     {

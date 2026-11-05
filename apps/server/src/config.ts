@@ -290,8 +290,7 @@ function mergeConfig(file: ConfigFile, warnings: string[]): AppConfig {
       port: web.port ?? defaults.web.port,
       adminAuth: web.admin_auth ?? defaults.web.adminAuth,
       sessionSecretEnv: web.session_secret_env ?? defaults.web.sessionSecretEnv,
-      adminPasswordHashEnv:
-        web.admin_password_hash_env ?? defaults.web.adminPasswordHashEnv,
+      adminPasswordHashEnv: web.admin_password_hash_env ?? defaults.web.adminPasswordHashEnv,
       corsOrigins: web.cors_origins ?? [...defaults.web.corsOrigins],
       staticDir: web.static_dir ?? defaults.web.staticDir,
       sessionTtlSeconds: web.session_ttl_seconds ?? defaults.web.sessionTtlSeconds,
@@ -332,8 +331,7 @@ function mergeConfig(file: ConfigFile, warnings: string[]): AppConfig {
           discord.intents?.message_content ??
           discord.message_content_intent ??
           defaults.discord.intents.messageContent,
-        directMessages:
-          discord.intents?.direct_messages ?? defaults.discord.intents.directMessages,
+        directMessages: discord.intents?.direct_messages ?? defaults.discord.intents.directMessages,
       },
       apiBaseUrl: discord.api_base_url ?? defaults.discord.apiBaseUrl,
       gatewayUrl: discord.gateway_url ?? defaults.discord.gatewayUrl,
@@ -346,8 +344,7 @@ function mergeConfig(file: ConfigFile, warnings: string[]): AppConfig {
       groupAllowlist: qq.group_allowlist ?? [...defaults.qq.groupAllowlist],
       allowProactivePrivate: qq.allow_proactive_private ?? defaults.qq.allowProactivePrivate,
       allowProactiveGroup: qq.allow_proactive_group ?? defaults.qq.allowProactiveGroup,
-      receiveAllGroupMessages:
-        qq.receive_all_group_messages ?? defaults.qq.receiveAllGroupMessages,
+      receiveAllGroupMessages: qq.receive_all_group_messages ?? defaults.qq.receiveAllGroupMessages,
       tokenUrl: qq.token_url ?? defaults.qq.tokenUrl,
       apiBaseUrl: qq.api_base_url ?? defaults.qq.apiBaseUrl,
       restTimeoutMs: qq.rest_timeout_ms ?? defaults.qq.restTimeoutMs,
@@ -357,8 +354,7 @@ function mergeConfig(file: ConfigFile, warnings: string[]): AppConfig {
     storage: {
       sqlitePath: storage.sqlite_path ?? defaults.storage.sqlitePath,
       dedupeTtlSeconds: storage.dedupe_ttl_seconds ?? defaults.storage.dedupeTtlSeconds,
-      messageRetentionDays:
-        storage.message_retention_days ?? defaults.storage.messageRetentionDays,
+      messageRetentionDays: storage.message_retention_days ?? defaults.storage.messageRetentionDays,
     },
     retry: {
       maxAttempts: retry.max_attempts ?? defaults.retry.maxAttempts,
@@ -420,7 +416,9 @@ function applyEnvironmentOverrides(config: AppConfig, env: NodeJS.ProcessEnv): v
   if (logLevel !== undefined) {
     const parsedLevel = logLevelSchema.safeParse(logLevel);
     if (!parsedLevel.success) {
-      throw new ConfigError('OMNI_RELAY_LOG_LEVEL must be one of fatal|error|warn|info|debug|trace');
+      throw new ConfigError(
+        'OMNI_RELAY_LOG_LEVEL must be one of fatal|error|warn|info|debug|trace',
+      );
     }
     config.logging.level = parsedLevel.data;
   }

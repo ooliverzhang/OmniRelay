@@ -1,10 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 
-import {
-  PLATFORMS,
-  isPlatform,
-  type PlatformUpdateRequest,
-} from '@omni-relay/shared-types';
+import { PLATFORMS, isPlatform, type PlatformUpdateRequest } from '@omni-relay/shared-types';
 
 import type { RouteContext, RouteGuard } from './context.js';
 

@@ -14,11 +14,7 @@ import {
   type RuleView,
 } from '@omni-relay/shared-types';
 import { truncate } from '@omni-relay/core';
-import type {
-  ConversationAggregateRow,
-  LogEntryRow,
-  MessageRecordRow,
-} from '@omni-relay/storage';
+import type { ConversationAggregateRow, LogEntryRow, MessageRecordRow } from '@omni-relay/storage';
 
 export function toRuleView(rule: MessageRule): RuleView {
   return { ...rule };

@@ -59,14 +59,18 @@ export function IdentitiesPage() {
       key: 'createdAt',
       header: '创建时间',
       render: (row) => (
-        <span className="whitespace-nowrap text-xs text-slate-400">{formatDateTime(row.createdAt)}</span>
+        <span className="whitespace-nowrap text-xs text-slate-400">
+          {formatDateTime(row.createdAt)}
+        </span>
       ),
     },
     {
       key: 'updatedAt',
       header: '更新时间',
       render: (row) => (
-        <span className="whitespace-nowrap text-xs text-slate-400">{formatDateTime(row.updatedAt)}</span>
+        <span className="whitespace-nowrap text-xs text-slate-400">
+          {formatDateTime(row.updatedAt)}
+        </span>
       ),
     },
   ];

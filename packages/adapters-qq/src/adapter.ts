@@ -190,7 +190,9 @@ export class QqAdapter {
         return null;
       }
       if (!this.isGroupAllowed(message.group_openid)) {
-        this.logger?.debug('qq group message filtered by allowlist', { group: message.group_openid });
+        this.logger?.debug('qq group message filtered by allowlist', {
+          group: message.group_openid,
+        });
         return null;
       }
       this.lastEventAt = this.now().toISOString();
@@ -358,17 +360,17 @@ export class QqAdapter {
   }
 }
 
-function mapAttachments(
-  attachments: readonly QqAttachment[] | undefined,
-): Array<{
-  url: string;
-  filename?: string | null;
-  contentType?: string | null;
-  size?: number | null;
-  width?: number | null;
-  height?: number | null;
-  urlExpiresAt?: string | null;
-}> | undefined {
+function mapAttachments(attachments: readonly QqAttachment[] | undefined):
+  | Array<{
+      url: string;
+      filename?: string | null;
+      contentType?: string | null;
+      size?: number | null;
+      width?: number | null;
+      height?: number | null;
+      urlExpiresAt?: string | null;
+    }>
+  | undefined {
   if (!attachments || attachments.length === 0) {
     return undefined;
   }
@@ -379,7 +381,7 @@ function mapAttachments(
     size: attachment.size ?? null,
     width: attachment.width ?? null,
     height: attachment.height ?? null,
-    urlExpiresAt: null,
+    urlExpiresAt: attachment.url_expires_at ?? attachment.url_expire_at ?? null,
   }));
 }
 

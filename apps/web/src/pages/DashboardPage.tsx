@@ -243,7 +243,10 @@ export function DashboardPage() {
         ) : (
           <ul className="divide-y divide-slate-800/80">
             {recentErrors.map((item) => (
-              <li key={item.id} className="flex flex-col gap-1.5 py-2 sm:flex-row sm:items-center sm:gap-3">
+              <li
+                key={item.id}
+                className="flex flex-col gap-1.5 py-2 sm:flex-row sm:items-center sm:gap-3"
+              >
                 <span className="w-36 shrink-0 font-mono text-xs text-slate-500">
                   {formatDateTime(item.time)}
                 </span>

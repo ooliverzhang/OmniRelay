@@ -18,6 +18,46 @@ afterEach(() => {
   storage.close();
 });
 
+describe('message lookup by id', () => {
+  it('finds a message by its native platform id', () => {
+    record({ bridgeMessageId: 'bridge-native-1', nativeMessageId: 'native-777' });
+    record({ bridgeMessageId: 'bridge-native-2', nativeMessageId: 'native-888' });
+
+    const found = storage.messages.getByNativeMessageId('discord', 'native-777');
+    expect(found?.bridgeMessageId).toBe('bridge-native-1');
+    expect(storage.messages.getByNativeMessageId('qq-official', 'native-777')).toBeNull();
+    expect(storage.messages.getByNativeMessageId('discord', 'missing')).toBeNull();
+    expect(storage.messages.getByNativeMessageId('discord', '')).toBeNull();
+  });
+
+  it('finds a message by its bridge message id', () => {
+    record({ bridgeMessageId: 'bridge-lookup-1' });
+    const found = storage.messages.getByBridgeMessageId('bridge-lookup-1');
+    expect(found?.bridgeMessageId).toBe('bridge-lookup-1');
+    expect(found?.text).toBe('hello world');
+    expect(storage.messages.getByBridgeMessageId('bridge-lookup-missing')).toBeNull();
+    expect(storage.messages.getByBridgeMessageId('')).toBeNull();
+  });
+
+  it('returns the newest row when a native id repeats', () => {
+    record({
+      bridgeMessageId: 'bridge-dup-1',
+      nativeMessageId: 'native-dup',
+      createdAt: new Date('2026-01-01T10:00:00.000Z'),
+      text: 'older',
+    });
+    record({
+      bridgeMessageId: 'bridge-dup-2',
+      nativeMessageId: 'native-dup',
+      createdAt: new Date('2026-01-01T11:00:00.000Z'),
+      text: 'newer',
+    });
+
+    const found = storage.messages.getByNativeMessageId('discord', 'native-dup');
+    expect(found?.text).toBe('newer');
+  });
+});
+
 function record(overrides: Partial<MessageRecordInput> = {}) {
   const input: MessageRecordInput = {
     bridgeMessageId: 'bridge-1',

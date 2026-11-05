@@ -51,7 +51,9 @@ export function LoginPage() {
         },
         onError: (mutationError) => {
           const message =
-            mutationError instanceof UnauthorizedError ? '密码错误' : errorMessage(mutationError, '登录失败');
+            mutationError instanceof UnauthorizedError
+              ? '密码错误'
+              : errorMessage(mutationError, '登录失败');
           setError(message);
           toast.error(message);
         },
@@ -105,7 +107,10 @@ export function LoginPage() {
           </FormField>
 
           {error ? (
-            <p role="alert" className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-300">
+            <p
+              role="alert"
+              className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-300"
+            >
               {error}
             </p>
           ) : null}

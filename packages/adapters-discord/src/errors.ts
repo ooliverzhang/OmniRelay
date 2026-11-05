@@ -4,7 +4,11 @@ import { BridgeError, type ErrorCode } from '@omni-relay/shared-types';
  * Maps Discord REST/Gateway failures onto the bridge error vocabulary so that
  * the queue can decide between retry, dead-letter and hard failure.
  */
-export function mapDiscordHttpStatus(status: number, body: string, retryAfterMs?: number): BridgeError {
+export function mapDiscordHttpStatus(
+  status: number,
+  body: string,
+  retryAfterMs?: number,
+): BridgeError {
   const code = classify(status, body);
   const detail = extractDiscordMessage(body);
   return new BridgeError({

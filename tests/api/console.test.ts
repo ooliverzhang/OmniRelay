@@ -133,7 +133,10 @@ describe('console API', () => {
       items: Array<{ platform: string; credentials: Array<{ state: string; env: string }> }>;
     };
     const discord = body.items.find((entry) => entry.platform === 'discord');
-    expect(discord?.credentials[0]).toMatchObject({ env: 'TEST_DISCORD_TOKEN', state: 'configured' });
+    expect(discord?.credentials[0]).toMatchObject({
+      env: 'TEST_DISCORD_TOKEN',
+      state: 'configured',
+    });
     expect(response.body).not.toContain(DISCORD_TOKEN);
 
     const settings = await harness.app.inject({
@@ -159,7 +162,13 @@ describe('console API', () => {
         platforms: ['discord'],
         conversationKinds: ['group'],
         trigger: { requireMention: true },
-        response: { enabled: true, allowProactive: false, allowPrivate: true, allowGroup: true, allowChannel: true },
+        response: {
+          enabled: true,
+          allowProactive: false,
+          allowPrivate: true,
+          allowGroup: true,
+          allowChannel: true,
+        },
       },
     });
     expect(created.statusCode).toBe(201);

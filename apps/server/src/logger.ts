@@ -17,7 +17,8 @@ export interface AppLogger {
 }
 
 const REDACTED = '[redacted]';
-const SENSITIVE_KEY = /^(authorization|cookie|set-cookie|token|access_token|appsecret|app_secret|secret|password|passwd|api[-_]?key)$/i;
+const SENSITIVE_KEY =
+  /^(authorization|cookie|set-cookie|token|access_token|appsecret|app_secret|secret|password|passwd|api[-_]?key)$/i;
 const SENSITIVE_INLINE = [
   /(Bearer\s+)[A-Za-z0-9._~+/=-]{6,}/g,
   /((?:access_token|token|app_secret|appsecret|secret|clientSecret|password)=)[^&\s"']+/gi,
@@ -114,7 +115,11 @@ export function createLogger(options: CreateLoggerOptions): AppLogger {
 }
 
 function wrap(pinoLogger: PinoLogger, storage: Storage | undefined, bindings: LogMeta): AppLogger {
-  const emit = (level: 'debug' | 'info' | 'warn' | 'error', message: string, meta?: LogMeta): void => {
+  const emit = (
+    level: 'debug' | 'info' | 'warn' | 'error',
+    message: string,
+    meta?: LogMeta,
+  ): void => {
     const safeMessage = redactText(message);
     const merged = { ...bindings, ...(meta ?? {}) };
     const safeMeta = redactMeta(merged) as Record<string, unknown>;

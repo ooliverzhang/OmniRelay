@@ -6,6 +6,7 @@ import {
   normalizeQqMessage,
   onebotSegmentsToUnified,
   parseCqString,
+  unifiedSegmentsToOneBotSegments,
   unifiedToOneBotEvent,
 } from '@omni-relay/core';
 import type { OneBotSegment, UnifiedMessageEvent } from '@omni-relay/shared-types';
@@ -297,5 +298,52 @@ describe('round trip through the normalizers', () => {
     );
     const onebot = unifiedToOneBotEvent(inbound, { selfId: 1, userId: 2 });
     expect(onebot.message).toEqual([{ type: 'text', data: { text: 'round trip' } }]);
+  });
+});
+
+describe('expiring media metadata', () => {
+  it('carries url_expires_at on image segments', () => {
+    const segments = unifiedSegmentsToOneBotSegments([
+      { type: 'image', url: 'https://cdn.test/a.png', urlExpiresAt: '2026-01-02T04:00:00.000Z' },
+    ]);
+    expect(segments[0]).toEqual({
+      type: 'image',
+      data: {
+        file: 'https://cdn.test/a.png',
+        url: 'https://cdn.test/a.png',
+        url_expires_at: '2026-01-02T04:00:00.000Z',
+      },
+    });
+  });
+
+  it('carries url_expires_at and size on file segments', () => {
+    const segments = unifiedSegmentsToOneBotSegments([
+      {
+        type: 'file',
+        url: 'https://cdn.test/b.pdf',
+        filename: 'b.pdf',
+        size: 2_048,
+        urlExpiresAt: '2026-01-02T05:00:00.000Z',
+      },
+    ]);
+    expect(segments[0]).toEqual({
+      type: 'file',
+      data: {
+        file: 'b.pdf',
+        url: 'https://cdn.test/b.pdf',
+        name: 'b.pdf',
+        file_size: 2_048,
+        url_expires_at: '2026-01-02T05:00:00.000Z',
+      },
+    });
+  });
+
+  it('omits the expiry key for permanent media', () => {
+    const segments = unifiedSegmentsToOneBotSegments([
+      { type: 'image', url: 'https://cdn.test/c.png' },
+    ]);
+    const data = (segments[0] as { data: Record<string, unknown> }).data;
+    expect(data['url_expires_at']).toBeUndefined();
+    expect(Object.keys(data).sort()).toEqual(['file', 'url']);
   });
 });

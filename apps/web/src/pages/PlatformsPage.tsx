@@ -19,7 +19,9 @@ export function PlatformsPage() {
   const toast = useToast();
 
   const items = platformsQuery.data?.items ?? [];
-  const updatingPlatform = updatePlatform.isPending ? updatePlatform.variables?.platform : undefined;
+  const updatingPlatform = updatePlatform.isPending
+    ? updatePlatform.variables?.platform
+    : undefined;
   const testingPlatform = testAction.isPending ? testAction.variables : undefined;
   const reconnectingPlatform = reconnectAction.isPending ? reconnectAction.variables : undefined;
 

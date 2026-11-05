@@ -28,7 +28,8 @@ OneBot 宿主”和“把 OneBot 指令安全地投递回平台”。
 | OneBot 11 反向 WebSocket 服务端（`/onebot/v11/ws`） | ✅ 已实现 |
 | Bearer Token / `?access_token=` 鉴权，401 拒绝升级 | ✅ 已实现 |
 | `message` 事件（私聊 / 群聊）、`meta_event`（lifecycle + heartbeat） | ✅ 已实现 |
-| Action：`get_login_info` `get_status` `get_version_info` `get_group_list` `get_group_info` `get_group_member_info` `get_stranger_info` `send_msg` `send_private_msg` `send_group_msg` | ✅ 已实现 |
+| Action（必选 10 个）：`get_login_info` `get_status` `get_version_info` `get_group_list` `get_group_info` `get_group_member_info` `get_stranger_info` `send_msg` `send_private_msg` `send_group_msg` | ✅ 已实现 |
+| Action（可选 3 个）：`get_msg` `delete_msg` `get_group_member_list` | ✅ 已实现（QQ 无撤回接口 → 1405） |
 | Action 超时、`echo` 关联、断线清理、重复响应忽略 | ✅ 已实现 |
 | Discord Gateway：HELLO/IDENTIFY/RESUME、心跳、重连退避、致命 close code | ✅ 已实现 |
 | Discord REST 发送：文本、附件上传、回复引用、DM 通道自动创建 | ✅ 已实现 |
@@ -44,9 +45,8 @@ OneBot 宿主”和“把 OneBot 指令安全地投递回平台”。
 | 健康检查 `/healthz` `/readyz` `/status`、结构化日志、优雅关闭 | ✅ 已实现 |
 | Dockerfile / docker-compose | ✅ 已提供（本机无 Docker，未实际构建） |
 
-尚未实现（详见 [DEPLOYMENT.md](./DEPLOYMENT.md#已知限制) 与文末“尚未实现”）：
-`delete_msg` / `get_msg` / `get_group_member_list` 等可选 Action、入站媒体本地缓存、
-Discord/QQ 的“全量群消息”以外的更多事件类型。
+规范中的“可选/推荐”项里仍未做的部分（详见 [DEPLOYMENT.md](./DEPLOYMENT.md#已知限制) 与文末）：
+入站媒体本地缓存、`notice`/`request` 事件、ESLint、多用户 RBAC。
 
 ---
 
@@ -104,7 +104,7 @@ npm run web:dev    # Vite dev server，5173，/api 代理到 127.0.0.1:3000
 | 脚本 | 说明 |
 | --- | --- |
 | `npm run typecheck` | `tsc -b`（全部后端包）+ 前端 `tsc --noEmit` |
-| `npm test` | Vitest 运行后端/集成/接口测试（34 文件 / 356 用例） |
+| `npm test` | Vitest 运行后端/集成/接口测试（35 文件 / 372 用例） |
 | `npm run build` | 构建后端（`tsc -b`）与前端（Vite → `apps/web/dist`） |
 | `npm run dev` | 后端热重载开发模式 |
 | `npm run web:dev` | 前端 Vite 开发服务器 |
@@ -190,7 +190,7 @@ Token:   Authorization: Bearer $ONEBOT_BRIDGE_TOKEN
 
 ```bash
 npm run typecheck   # 后端 10 个 project + 前端，0 错误
-npm test            # 34 files / 356 tests 通过
+npm test            # 35 files / 372 tests 通过
 npm run build       # 后端 tsc -b + 前端 vite build 成功
 npm run web:test    # 4 files / 36 tests 通过
 docker compose config   # 本机未安装 Docker，需在具备 Docker 的环境执行
@@ -199,7 +199,7 @@ docker compose config   # 本机未安装 Docker，需在具备 Docker 的环境
 最近一次本地结果（开发机 Windows / Node 24.18）：
 
 - `npm run typecheck`：通过（0 错误）
-- `npm test`：**34 文件 / 356 用例全部通过**
+- `npm test`：**35 文件 / 372 用例全部通过**
 - `npm run web:test`：**4 文件 / 36 用例全部通过**
 - `npm run build`：成功，前端产物 `index.html 0.86 kB` + `css 25.77 kB` + `js 817.89 kB`（gzip 267.86 kB）
 - 进程级冒烟：`node apps/server/dist/index.js` 后 `/healthz`、`/readyz`、`/status`、
@@ -211,12 +211,23 @@ docker compose config   # 本机未安装 Docker，需在具备 Docker 的环境
 
 ## 9. 尚未实现 / 已知限制
 
-1. `delete_msg`、`get_msg`、`get_group_member_list` 等**可选** Action 未实现（未注册即返回 1404）。
-2. 入站媒体**不做本地缓存**：QQ 临时附件 URL 会被记录并在 OneBot 事件中原样透传，
-   过期后无法再取；如需长期保存请在宿主侧立即下载。
+说明：这是**规范标注为“可选/推荐”且尚未实现**的清单，不是技术不可行项。第六节“必须支持”的
+10 个 Action、事件、鉴权、超时、`echo` 等均已实现。
+
+1. 入站媒体**不做本地落盘缓存**：QQ 临时附件 URL 会在 OneBot 段的
+   `url_expires_at` 字段中透出过期时间（非标准扩展），但桥自身不下载保存；
+   请在宿主侧按该时间立即下载。
+2. `notice` / `request` 事件未推送：只推送 `message` 与 `meta_event`。
 3. 全量群消息（`GROUP_MESSAGE_CREATE`）仅在配置显式开启时接收，且需官方权限；
    默认按 `groupMentionReceive` 语义工作。
 4. Discord 的 `privateProactiveSend` 保守标记为不支持（机器人无法向无共同服务器的用户发起 DM）。
-5. 控制台未做多用户/角色体系，仅单管理员会话。
+5. 控制台未做多用户/角色体系，仅单管理员会话（规范未要求 RBAC）。
 6. Docker 相关文件已提供，但本机无 Docker，未实际执行 `docker compose up` 验证。
-7. 未配置 ESLint（Prettier 已配置）；如需要可后续补充。
+7. 未配置 ESLint（Prettier 已配置），此为规范“推荐”项。
+
+### 可选 Action 的实现边界
+
+- `get_msg` / `delete_msg` 只能作用于**桥已存储**的入站消息；未知 id → `1404`，参数非法 → `1400`。
+- `delete_msg` 在 Discord 上真实撤回；**QQ 官方机器人没有撤回接口**，启用状态下返回
+  `1405 capability_unsupported`，平台停用时返回 `1500`。桥不会假装成功。
+- `get_group_member_list` 只返回桥**观察到过**的成员（QQ 无法枚举全量群成员）。

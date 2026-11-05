@@ -53,12 +53,8 @@ export const queryKeys = {
     ] as const,
   identities: (params: { platform: string; search: string; page: number; pageSize: number }) =>
     ['identities', params.platform, params.search, params.page, params.pageSize] as const,
-  queues: (params: {
-    status: string;
-    platform: string;
-    page: number;
-    pageSize: number;
-  }) => ['queues', params.status, params.platform, params.page, params.pageSize] as const,
+  queues: (params: { status: string; platform: string; page: number; pageSize: number }) =>
+    ['queues', params.status, params.platform, params.page, params.pageSize] as const,
   deadLetters: (params: { platform: string; page: number; pageSize: number }) =>
     ['dead-letters', params.platform, params.page, params.pageSize] as const,
   logs: (params: {
@@ -67,7 +63,8 @@ export const queryKeys = {
     search: string;
     page: number;
     pageSize: number;
-  }) => ['logs', params.level, params.platform, params.search, params.page, params.pageSize] as const,
+  }) =>
+    ['logs', params.level, params.platform, params.search, params.page, params.pageSize] as const,
   settings: ['settings'] as const,
 };
 

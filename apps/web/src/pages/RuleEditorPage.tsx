@@ -16,7 +16,15 @@ import type {
 import { Button } from '../components/Button';
 import { Card, PageHeader } from '../components/Card';
 import { ErrorState, LoadingBlock } from '../components/EmptyState';
-import { Checkbox, FormField, FormSection, Select, TextArea, TextInput, Toggle } from '../components/Field';
+import {
+  Checkbox,
+  FormField,
+  FormSection,
+  Select,
+  TextArea,
+  TextInput,
+  Toggle,
+} from '../components/Field';
 import { useToast } from '../components/Toast';
 import {
   CONVERSATION_KIND_OPTIONS,
@@ -164,7 +172,9 @@ function fromRule(rule: RuleView): EditorState {
       allowGroup: response.allowGroup,
       allowChannel: response.allowChannel,
       maxResponseSegments:
-        typeof response.maxResponseSegments === 'number' ? String(response.maxResponseSegments) : '',
+        typeof response.maxResponseSegments === 'number'
+          ? String(response.maxResponseSegments)
+          : '',
     },
     rateLimit: rule.rateLimit
       ? {
@@ -245,7 +255,12 @@ function toPayload(state: EditorState): RuleUpsertRequest {
   if (state.rateLimit.enabled) {
     const maxMessages = Number.parseInt(state.rateLimit.maxMessages, 10);
     const windowSeconds = Number.parseInt(state.rateLimit.windowSeconds, 10);
-    if (Number.isFinite(maxMessages) && maxMessages > 0 && Number.isFinite(windowSeconds) && windowSeconds > 0) {
+    if (
+      Number.isFinite(maxMessages) &&
+      maxMessages > 0 &&
+      Number.isFinite(windowSeconds) &&
+      windowSeconds > 0
+    ) {
       payload.rateLimit = { maxMessages, windowSeconds, scope: state.rateLimit.scope };
     }
   }
@@ -461,7 +476,9 @@ export function RuleEditorPage() {
                     label={option.label}
                     checked={state.conversationKinds.includes(option.value)}
                     onChange={() =>
-                      patch({ conversationKinds: toggleItem(state.conversationKinds, option.value) })
+                      patch({
+                        conversationKinds: toggleItem(state.conversationKinds, option.value),
+                      })
                     }
                   />
                 ))}
@@ -550,7 +567,11 @@ export function RuleEditorPage() {
               </FormField>
             </div>
 
-            <FormField label="包含关键词" htmlFor="rule-text-includes" hint="每行一个关键词，命中任意一个即匹配">
+            <FormField
+              label="包含关键词"
+              htmlFor="rule-text-includes"
+              hint="每行一个关键词，命中任意一个即匹配"
+            >
               <TextArea
                 id="rule-text-includes"
                 rows={3}
@@ -568,7 +589,9 @@ export function RuleEditorPage() {
                     label={option.label}
                     checked={state.trigger.messageTypes.includes(option.value)}
                     onChange={() =>
-                      patchTrigger({ messageTypes: toggleItem(state.trigger.messageTypes, option.value) })
+                      patchTrigger({
+                        messageTypes: toggleItem(state.trigger.messageTypes, option.value),
+                      })
                     }
                   />
                 ))}
@@ -592,7 +615,11 @@ export function RuleEditorPage() {
                   onChange={(event) => patchTrigger({ groupAllowlist: event.target.value })}
                 />
               </FormField>
-              <FormField label="频道允许列表" htmlFor="rule-channel-allowlist" hint="留空表示不限制">
+              <FormField
+                label="频道允许列表"
+                htmlFor="rule-channel-allowlist"
+                hint="留空表示不限制"
+              >
                 <TextArea
                   id="rule-channel-allowlist"
                   rows={3}

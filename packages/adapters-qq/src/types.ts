@@ -21,6 +21,12 @@ export interface QqAttachment {
   size?: number | null;
   width?: number | null;
   height?: number | null;
+  /**
+   * Temporary CDN urls expire; the platform may report the deadline under
+   * either key. Preserved verbatim so the bridge can forward it to OneBot.
+   */
+  url_expires_at?: string | null;
+  url_expire_at?: string | null;
 }
 
 export interface QqC2CMessageCreate {

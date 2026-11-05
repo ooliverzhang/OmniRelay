@@ -132,7 +132,11 @@ describe('QqRestClient', () => {
     const { rest } = createStack((request) =>
       request.url === TOKEN_URL
         ? tokenOk
-        : { status: 429, body: { code: 304023, message: 'too many requests' }, headers: { 'retry-after': '3' } },
+        : {
+            status: 429,
+            body: { code: 304023, message: 'too many requests' },
+            headers: { 'retry-after': '3' },
+          },
     );
 
     await expect(
@@ -205,11 +209,13 @@ describe('QqGateway', () => {
 });
 
 describe('QqAdapter', () => {
-  function createAdapter(options: {
-    groupAllowlist?: string[];
-    allowProactiveGroup?: boolean;
-    handler?: Parameters<typeof createFetchMock>[0];
-  } = {}) {
+  function createAdapter(
+    options: {
+      groupAllowlist?: string[];
+      allowProactiveGroup?: boolean;
+      handler?: Parameters<typeof createFetchMock>[0];
+    } = {},
+  ) {
     const { mock, rest, tokenManager } = createStack(
       options.handler ??
         ((request) => (request.url === TOKEN_URL ? tokenOk : { body: { id: 'sent-1' } })),

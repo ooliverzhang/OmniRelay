@@ -1,17 +1,8 @@
 import { WebSocket } from 'ws';
 
-import {
-  QqGatewayOpcode,
-  type QqGatewayPayload,
-  type QqReadyPayload,
-} from './types.js';
+import { QqGatewayOpcode, type QqGatewayPayload, type QqReadyPayload } from './types.js';
 
-export type QqGatewayState =
-  | 'disconnected'
-  | 'connecting'
-  | 'connected'
-  | 'reconnecting'
-  | 'error';
+export type QqGatewayState = 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'error';
 
 export interface QqGatewayLogger {
   debug(message: string, meta?: Record<string, unknown>): void;
@@ -137,7 +128,9 @@ export class QqGateway {
     const factory = this.options.createSocket;
     let socket: QqSocketLike;
     try {
-      socket = factory ? factory(this.options.gatewayUrl) : (new WebSocket(this.options.gatewayUrl) as unknown as QqSocketLike);
+      socket = factory
+        ? factory(this.options.gatewayUrl)
+        : (new WebSocket(this.options.gatewayUrl) as unknown as QqSocketLike);
     } catch (error) {
       this.reportError(error);
       this.scheduleReconnect('socket_create_failed');
@@ -149,7 +142,12 @@ export class QqGateway {
       this.logger?.debug('qq gateway socket open');
     });
     socket.on('message', (data: unknown) => {
-      const text = typeof data === 'string' ? data : Buffer.isBuffer(data) ? data.toString('utf8') : String(data);
+      const text =
+        typeof data === 'string'
+          ? data
+          : Buffer.isBuffer(data)
+            ? data.toString('utf8')
+            : String(data);
       let payload: QqGatewayPayload;
       try {
         payload = JSON.parse(text) as QqGatewayPayload;

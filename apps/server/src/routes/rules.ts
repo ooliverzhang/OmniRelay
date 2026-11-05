@@ -60,8 +60,14 @@ const scheduleSchema = z
   .object({
     timezone: z.string().optional(),
     weekdays: z.array(z.number().int().min(1).max(7)).optional(),
-    startTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
-    endTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+    startTime: z
+      .string()
+      .regex(/^\d{2}:\d{2}$/)
+      .optional(),
+    endTime: z
+      .string()
+      .regex(/^\d{2}:\d{2}$/)
+      .optional(),
   })
   .strict();
 
@@ -155,14 +161,18 @@ export function registerRuleRoutes(
     return toRuleView(created);
   });
 
-  app.get<{ Params: { id: string } }>('/api/rules/:id', { preHandler: guard }, async (request, reply) => {
-    const rule = runtime.storage.rules.get(request.params.id);
-    if (!rule) {
-      reply.code(404);
-      return { error: { code: 'not_found', message: '规则不存在' } };
-    }
-    return toRuleView(rule);
-  });
+  app.get<{ Params: { id: string } }>(
+    '/api/rules/:id',
+    { preHandler: guard },
+    async (request, reply) => {
+      const rule = runtime.storage.rules.get(request.params.id);
+      if (!rule) {
+        reply.code(404);
+        return { error: { code: 'not_found', message: '规则不存在' } };
+      }
+      return toRuleView(rule);
+    },
+  );
 
   app.patch<{ Params: { id: string } }>(
     '/api/rules/:id',
@@ -254,7 +264,10 @@ export function registerRuleRoutes(
     }
     const items = runtime.storage.rules.reorder(body.orderedIds);
     runtime.invalidateRules();
-    context.logger.info('rules reordered', { event: 'rule.reorder', count: body.orderedIds.length });
+    context.logger.info('rules reordered', {
+      event: 'rule.reorder',
+      count: body.orderedIds.length,
+    });
     return { items: items.map(toRuleView) };
   });
 

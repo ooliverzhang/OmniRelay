@@ -57,7 +57,12 @@ export function registerQueueRoutes(
         reply.code(404);
         return { error: { code: 'not_found', message: '队列记录不存在' } };
       }
-      const preflight = preflightDelivery(context, record.platform, record.conversationKind, record.payload.proactive);
+      const preflight = preflightDelivery(
+        context,
+        record.platform,
+        record.conversationKind,
+        record.payload.proactive,
+      );
       if (preflight) {
         reply.code(409);
         return { error: { code: preflight.code, message: preflight.message } };

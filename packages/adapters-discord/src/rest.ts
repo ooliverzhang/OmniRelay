@@ -1,7 +1,12 @@
 import { BridgeError } from '@omni-relay/shared-types';
 
 import { mapDiscordHttpStatus, networkError, parseRetryAfterMs } from './errors.js';
-import type { DiscordChannel, DiscordMessage, DiscordMessageReference, DiscordUser } from './types.js';
+import type {
+  DiscordChannel,
+  DiscordMessage,
+  DiscordMessageReference,
+  DiscordUser,
+} from './types.js';
 
 export interface DiscordFileUpload {
   filename: string;
@@ -68,10 +73,7 @@ export class DiscordRestClient {
   }
 
   async listGuildChannels(guildId: string): Promise<DiscordChannel[]> {
-    return this.request<DiscordChannel[]>(
-      'GET',
-      `/guilds/${encodeURIComponent(guildId)}/channels`,
-    );
+    return this.request<DiscordChannel[]>('GET', `/guilds/${encodeURIComponent(guildId)}/channels`);
   }
 
   async openDirectMessage(userId: string): Promise<DiscordChannel> {
@@ -80,7 +82,10 @@ export class DiscordRestClient {
     });
   }
 
-  async createMessage(channelId: string, body: DiscordCreateMessageBody): Promise<DiscordSendResult> {
+  async createMessage(
+    channelId: string,
+    body: DiscordCreateMessageBody,
+  ): Promise<DiscordSendResult> {
     const path = `/channels/${encodeURIComponent(channelId)}/messages`;
     const content = body.content ?? '';
     if (content.length > DISCORD_MAX_CONTENT) {

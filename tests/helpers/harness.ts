@@ -42,7 +42,8 @@ export function createFetchMock(
     input: string | URL | Request,
     init?: RequestInit,
   ): Promise<Response> => {
-    const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+    const url =
+      typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
     const headers: Record<string, string> = {};
     const rawHeaders = init?.headers;
     if (rawHeaders instanceof Headers) {
@@ -89,7 +90,9 @@ export function createFetchMock(
   };
 }
 
-export function createSilentLogger(): AppLogger & { records: Array<{ level: string; msg: string }> } {
+export function createSilentLogger(): AppLogger & {
+  records: Array<{ level: string; msg: string }>;
+} {
   const records: Array<{ level: string; msg: string }> = [];
   const build = (bindings: Record<string, unknown>): AppLogger => ({
     debug: (msg) => records.push({ level: 'debug', msg }),
@@ -130,7 +133,13 @@ export function createTestConfig(overrides: Partial<AppConfig> = {}): AppConfig 
   const config: AppConfig = {
     ...base,
     ...overrides,
-    server: { ...base.server, host: '127.0.0.1', onebotPort: 0, healthPort: 0, ...(overrides.server ?? {}) },
+    server: {
+      ...base.server,
+      host: '127.0.0.1',
+      onebotPort: 0,
+      healthPort: 0,
+      ...(overrides.server ?? {}),
+    },
     web: {
       ...base.web,
       enabled: false,

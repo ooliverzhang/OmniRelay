@@ -131,13 +131,24 @@ ws://<host>:8098/onebot/v11/ws?access_token=<ONEBOT_BRIDGE_TOKEN>
 | `send_msg` | `message_type?`,`user_id?`,`group_id?`,`message` | `{message_id}`（**async**） |
 | `send_private_msg` | `user_id`,`message` | `{message_id}`（**async**） |
 | `send_group_msg` | `group_id`,`message` | `{message_id}`（**async**） |
+| `get_msg` | `message_id` | 完整 `message` 事件（回放已存储的入站消息） |
+| `delete_msg` | `message_id` | `{}`（Discord 真实撤回；QQ 返回 `1405`） |
+| `get_group_member_list` | `group_id` | `[{group_id, user_id, nickname, card, role}]`（仅桥观察到的成员） |
 
 `message` 支持两种形式：
 
 1. 段数组：`[{"type":"text","data":{"text":"hi"}}]`
 2. CQ 字符串：`"hi [CQ:at,qq=1000000002]"`（支持 `&#91;`/`&#93;`/`&#44;`/`&amp;` 反转义）
 
-`delete_msg` / `get_msg` / `get_group_member_list` **未实现**（返回 `1404 unknown_action`）。
+`get_msg` / `delete_msg` / `get_group_member_list` 为规范中的**可选** Action，均已实现，但有如下边界：
+
+- `get_msg` 与 `delete_msg` 只能作用于**桥已经存过**的消息（入站消息存在 `messages` 表）。
+  未知 `message_id` 返回 `1404`；`message_id` 缺失或类型非法返回 `1400`。
+- `delete_msg`：Discord 走 `DELETE /channels/{channel_id}/messages/{message_id}` 真实撤回；
+  **QQ 官方机器人没有撤回接口**，因此启用状态下返回 `1405 capability_unsupported`（不会假装成功）。
+  平台停用时返回 `1500 platform_unavailable`。
+- `get_group_member_list` 只返回**桥实际观察到过**的成员（来自入站消息的时间线），
+  因为 QQ 只推送 @ 消息、无法枚举全量群成员；未知 `group_id` 返回 `1404`。
 
 ### 3.2 为什么 `send_*` 是异步
 
@@ -186,7 +197,8 @@ qq:group:<group_openid>      → group_id 2000000001…
 
 | 点 | 说明 |
 | --- | --- |
-| 无 `get_friend_list` / `get_group_member_list` | 桥只知道自己见过的身份，未实现全量好友/成员枚举 |
+| 无 `get_friend_list` | 桥没有好友列表概念，未实现全量好友枚举 |
+| `get_group_member_list` 不是全量 | 只返回桥观察到的成员（QQ 无法枚举全量群成员） |
 | 无非消息事件 | 只推送 `message` + `meta_event`；`notice`/`request` 未实现 |
 | 头像/昵称 | 昵称可能为 `null`，头像 URL 未透出（避免临时链接外泄） |
 | `send_*` 语义 | 恒为异步接受，最终结果在控制台可见 |

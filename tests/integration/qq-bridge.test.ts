@@ -124,7 +124,12 @@ describe('QQ official bot <-> OneBot bridge integration', () => {
       headers: { Authorization: 'Bearer onebot-secret' },
     });
     clientSocket.on('message', (data: unknown) => {
-      const text = typeof data === 'string' ? data : Buffer.isBuffer(data) ? data.toString('utf8') : String(data);
+      const text =
+        typeof data === 'string'
+          ? data
+          : Buffer.isBuffer(data)
+            ? data.toString('utf8')
+            : String(data);
       const payload = JSON.parse(text) as Record<string, unknown>;
       if (payload['post_type'] === 'message') {
         events.push(payload);

@@ -105,7 +105,11 @@ export function checkDeliveryCapability(
 ): DeliveryCapabilityResult {
   const requiredFlag = resolveRequiredFlag(query);
   if (!requiredFlag) {
-    return { allowed: false, reason: `unsupported_conversation_kind:${query.conversationKind}`, requiredFlag: null };
+    return {
+      allowed: false,
+      reason: `unsupported_conversation_kind:${query.conversationKind}`,
+      requiredFlag: null,
+    };
   }
   if (!capabilities[requiredFlag]) {
     return { allowed: false, reason: `capability_unsupported:${requiredFlag}`, requiredFlag };
@@ -135,9 +139,7 @@ export function describeCapabilities(capabilities: PlatformCapabilities): Capabi
   return CAPABILITY_FLAGS.map((flag) => ({ flag, supported: capabilities[flag] === true }));
 }
 
-export function missingCapabilities(
-  capabilities: PlatformCapabilities,
-): CapabilityFlag[] {
+export function missingCapabilities(capabilities: PlatformCapabilities): CapabilityFlag[] {
   return CAPABILITY_FLAGS.filter((flag) => capabilities[flag] !== true);
 }
 
